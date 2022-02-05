@@ -43,7 +43,19 @@
     <ClCompile Include="SeriesSelection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="TVDBHandler.cpp">
+    <ClCompile Include="tvdb\TVDBHandler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\Metadata.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\Episode.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\Season.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\Series.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -58,8 +70,20 @@
     </QtUic>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="TVDBHandler.h">
+    <ClInclude Include="tvdb\TVDBHandler.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="meta\Metadata.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="meta\Episode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="meta\Season.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="meta\Series.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
