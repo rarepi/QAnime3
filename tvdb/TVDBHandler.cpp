@@ -93,11 +93,10 @@ Season* TVDBHandler::parseSeason(const char* html, int seasonNumber) {
                                 if (ep->getFirstAiredDate().empty()) {
                                     textNode = static_cast<GumboNode*>(contentNode->v.element.children.data[0]);
                                     ep->setFirstAiredDate(textNode->v.text.text);
-                                } else if (ep->getFirstAiredBroadcaster().empty()) {    // TODO does not work
+                                } else if (ep->getFirstAiredBroadcaster().empty()) {
                                     textNode = static_cast<GumboNode*>(contentNode->v.element.children.data[0]);
-                                    ep->setFirstAiredDate(textNode->v.text.text);
-                                } else
-                                    throw "Third div encountered!";
+                                    ep->setFirstAiredBroadcaster(textNode->v.text.text);
+                                } //else throw "Third div encountered!"; // TODO
                                 break;
                             // irrelevant, do nothing
                             case GUMBO_TAG_I:
