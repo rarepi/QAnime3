@@ -58,6 +58,9 @@
     <ClCompile Include="meta\Series.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="qbt\QBTHandler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="SeriesSelection.h">
@@ -82,8 +85,11 @@
     <ClInclude Include="meta\Season.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="qbt\QBTHandler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\Series.h">
-      <Filter>Source Files</Filter>
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

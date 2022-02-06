@@ -1,0 +1,7 @@
+{
+    "qbt_username": "rarepi",
+    "qbt_password": "test123",
+    "qbt_url": "http://localhost:8080/api/v2",
+    "tvdb_url": "https://thetvdb.com/series",
+    "tvdb_cache": "./cache.json"
+}

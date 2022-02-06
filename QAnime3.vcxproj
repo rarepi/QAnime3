@@ -68,6 +68,7 @@
     </Link>
     <ClCompile>
       <PreprocessorDefinitions>CURL_STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>Default</LanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -76,6 +77,7 @@
     </Link>
     <ClCompile>
       <PreprocessorDefinitions>CURL_STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>Default</LanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="Configuration">
@@ -109,6 +111,7 @@
     <ClCompile Include="meta\Metadata.cpp" />
     <ClCompile Include="meta\Season.cpp" />
     <ClCompile Include="meta\Series.cpp" />
+    <ClCompile Include="qbt\QBTHandler.cpp" />
     <ClCompile Include="SeriesSelection.cpp" />
     <ClCompile Include="tvdb\TVDBHandler.cpp" />
     <QtRcc Include="QAnime3.qrc" />
@@ -126,6 +129,7 @@
     <ClInclude Include="meta\Metadata.h" />
     <ClInclude Include="meta\Season.h" />
     <ClInclude Include="meta\Series.h" />
+    <ClInclude Include="qbt\QBTHandler.h" />
     <ClInclude Include="tvdb\TVDBHandler.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

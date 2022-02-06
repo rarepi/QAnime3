@@ -5,12 +5,21 @@
 // initialize pointer for first getInstance call
 TVDBHandler* TVDBHandler::instance = 0;
 
-TVDBHandler::TVDBHandler() {}
+TVDBHandler::TVDBHandler(const std::string& TVDB_URL, const std::string& tvdb_cache) {
+    this->tvdb_url = TVDB_URL;
+    this->tvdb_cache = tvdb_cache;
+}
+
+TVDBHandler* TVDBHandler::createInstance(const std::string& tvdb_url, const std::string& tvdb_cache) {
+    if (instance) delete instance;
+    instance = new TVDBHandler(tvdb_url, tvdb_cache);
+    return instance;
+}
 
 TVDBHandler* TVDBHandler::getInstance() {
-	if (!instance)
-		instance = new TVDBHandler();
-	return instance;
+    if (!instance)
+        throw "TVDBHandler has not yet been initialized";
+    return instance;
 }
 
 // trim functions source: https://stackoverflow.com/a/217605/5920409
@@ -31,7 +40,7 @@ static inline void trim(std::string& s) {
     rtrim(s);
 }
 
-Season* TVDBHandler::getSeasonData(const std::string tvdbName, const int season) {
+Season* TVDBHandler::getSeasonData(const std::string& tvdbName, const int& season) {
     std::string url = std::string(TVDB_BASE_URL) + "/" + tvdbName + "/seasons/official/" + std::to_string(season);
     std::string html = getHtml(url);
     Season* seasonData;
@@ -90,11 +99,10 @@ Season* TVDBHandler::parseSeason(const char* html, int seasonNumber) {
                             // assume first aired date OR broadcaster
                             case GUMBO_TAG_DIV:
                                 // set date if unset, else set broadcaster
+                                textNode = static_cast<GumboNode*>(contentNode->v.element.children.data[0]);
                                 if (ep->getFirstAiredDate().empty()) {
-                                    textNode = static_cast<GumboNode*>(contentNode->v.element.children.data[0]);
                                     ep->setFirstAiredDate(textNode->v.text.text);
                                 } else if (ep->getFirstAiredBroadcaster().empty()) {
-                                    textNode = static_cast<GumboNode*>(contentNode->v.element.children.data[0]);
                                     ep->setFirstAiredBroadcaster(textNode->v.text.text);
                                 } //else throw "Third div encountered!"; // TODO
                                 break;
