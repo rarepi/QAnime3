@@ -15,4 +15,7 @@ class Series : public Metadata {
 	private:
 		std::vector<Season*> seasons;
 		std::string TVDBName;
+		std::string airRhythm;
+		std::string firstAiredDate;
+		std::string firstAiredBroadcaster;
 };
