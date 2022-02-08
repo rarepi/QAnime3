@@ -92,6 +92,7 @@ Series* TVDBHandler::parseSeries(const char* html, const std::string& tvdbName) 
             if (tag != GUMBO_TAG_STRONG && tag != GUMBO_TAG_SPAN)
                 continue;
 
+            // iterate through the <strong>'s and <span>'s content nodes
             for (size_t k = 0; k < li_child->v.element.children.length; k++) {
                 GumboNode* contentNode = (GumboNode*) li_child->v.element.children.data[k];
                 // dig one deeper if it's a hyperlink
@@ -101,10 +102,10 @@ Series* TVDBHandler::parseSeries(const char* html, const std::string& tvdbName) 
                 // write any qualified data into string pairs
                 if (contentNode->type == GUMBO_NODE_TEXT) {
                     switch (tag) {
-                    case GUMBO_TAG_STRONG:
+                    case GUMBO_TAG_STRONG:  // description
                         data.first = contentNode->v.text.text;
                         break;
-                    case GUMBO_TAG_SPAN:
+                    case GUMBO_TAG_SPAN:    // value
                         if (data.second.empty())
                             data.second = contentNode->v.text.text;
                         else // case of multiple spans, we append these to the first span.
@@ -117,19 +118,21 @@ Series* TVDBHandler::parseSeries(const char* html, const std::string& tvdbName) 
         dataCollection.push_back(data);
     }
 
-    // write data into Series object and return it.
+    // write collected series data into Series object and return it
     for (auto data : dataCollection) {
         // trim whitespace
         trim(data.first);
         trim(data.second);
         
-        // remove duplicate whitespace within the string (wtf tvdb)
+        // remove duplicate whitespace within the string (wtf tvdb?)
         std::string::iterator new_end = std::unique(data.second.begin(),data.second.end(),
                 [&](char lhs, char rhs) -> bool {
                     return (std::isspace(lhs) && std::isspace(rhs));
                 });
         data.second.erase(new_end, data.second.end()); 
 
+        // pair descriptions of wanted information with Series class (ugly hardcoded way)
+        // an alternative would be to use the order of elements for identification (which can break just as easily)
         if (data.first == "TheTVDB.com Series ID")
             series->setId(std::stoi(data.second));
         else if (data.first == "First Aired")
