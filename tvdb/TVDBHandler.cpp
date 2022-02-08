@@ -1,7 +1,5 @@
 #include "TVDBHandler.h"
 
-#define TVDB_BASE_URL "https://thetvdb.com/series"
-
 // initialize pointer for first getInstance call
 TVDBHandler* TVDBHandler::instance = 0;
 
@@ -40,13 +38,145 @@ static inline void trim(std::string& s) {
     rtrim(s);
 }
 
+Series* TVDBHandler::getSeriesData(const std::string& tvdbName) {
+    std::string url = this->tvdb_url + "/" + tvdbName;
+    std::string html = this->getHtml(url);
+    Series* seriesData;
+    if (html.size() > 0) {
+        seriesData = this->parseSeries(html.c_str(), tvdbName);
+    } // else return nullptr
+    return seriesData;
+}
+
+Series* TVDBHandler::parseSeries(const char* html, const std::string& tvdbName) {
+    if (!html) return nullptr;
+    GumboOutput* htmlParsed = gumbo_parse(html);
+    GumboNode* root = htmlParsed->root;
+
+    // find basic series info div
+    GumboNode* seriesInfoDiv = findBasicSeriesInfo(root);
+    if (!seriesInfoDiv || seriesInfoDiv->v.element.children.length == 0) return nullptr;
+    
+    // get first <ul>
+    GumboNode* ul;
+    for (int i = 0; i < seriesInfoDiv->v.element.children.length; i++) {
+        ul = (GumboNode*)seriesInfoDiv->v.element.children.data[i];
+        if (ul->v.element.tag == GUMBO_TAG_UL)
+            break;
+    }
+    // check if node element <ul>, else the html is in an unexpected format
+    if (ul->type != GUMBO_NODE_ELEMENT || ul->v.element.tag != GUMBO_TAG_UL)
+        throw "parseSeries: Unexpected format. Couldn't find <ul> element.";
+
+    Series* series = new Series(tvdbName);
+    std::vector<std::pair<std::string, std::string>> dataCollection;
+
+    // iterate through all <li>
+    for (size_t i = 0; i < ul->v.element.children.length; i++) {
+        GumboNode* li = (GumboNode*) ul->v.element.children.data[i];
+        // check if node element <li>, else skip
+        if (!li || li->type != GUMBO_NODE_ELEMENT || li->v.element.tag != GUMBO_TAG_LI)
+            continue;
+        
+        std::pair<std::string, std::string> data;
+        // iterate through all children of <li>
+        for (size_t j = 0; j < li->v.element.children.length; j++) {
+            GumboNode* li_child = (GumboNode*) li->v.element.children.data[j];
+
+            // check if node element, else skip
+            if (!li_child || li_child->type != GUMBO_NODE_ELEMENT)
+                continue;
+
+            // save node tag for next step and check if it's either a <strong> or <span>, else skip
+            GumboTag tag = li_child->v.element.tag;
+            if (tag != GUMBO_TAG_STRONG && tag != GUMBO_TAG_SPAN)
+                continue;
+
+            for (size_t k = 0; k < li_child->v.element.children.length; k++) {
+                GumboNode* contentNode = (GumboNode*) li_child->v.element.children.data[k];
+                // dig one deeper if it's a hyperlink
+                if (contentNode->type == GUMBO_NODE_ELEMENT && contentNode->v.element.tag == GUMBO_TAG_A)
+                    contentNode = (GumboNode*)contentNode->v.element.children.data[0];
+
+                // write any qualified data into string pairs
+                if (contentNode->type == GUMBO_NODE_TEXT) {
+                    switch (tag) {
+                    case GUMBO_TAG_STRONG:
+                        data.first = contentNode->v.text.text;
+                        break;
+                    case GUMBO_TAG_SPAN:
+                        if (data.second.empty())
+                            data.second = contentNode->v.text.text;
+                        else // case of multiple spans, we append these to the first span.
+                            data.second.append(", " + std::string(contentNode->v.text.text));
+                        break;
+                    }
+                }
+            }           
+        }
+        dataCollection.push_back(data);
+    }
+
+    // write data into Series object and return it.
+    for (auto data : dataCollection) {
+        // trim whitespace
+        trim(data.first);
+        trim(data.second);
+        
+        // remove duplicate whitespace within the string (wtf tvdb)
+        std::string::iterator new_end = std::unique(data.second.begin(),data.second.end(),
+                [&](char lhs, char rhs) -> bool {
+                    return (std::isspace(lhs) && std::isspace(rhs));
+                });
+        data.second.erase(new_end, data.second.end()); 
+
+        if (data.first == "TheTVDB.com Series ID")
+            series->setId(std::stoi(data.second));
+        else if (data.first == "First Aired")
+            series->setFirstAiredDate(data.second);
+        else if (data.first == "Airs")
+            series->setAirRhythm(data.second);
+        else if (data.first == "Networks")
+            series->setFirstAiredBroadcaster(data.second);
+    }
+
+    return series;
+}
+
+GumboNode* TVDBHandler::findBasicSeriesInfo(GumboNode* node) {
+    if (node->type != GUMBO_NODE_ELEMENT)
+        return nullptr;
+
+    // find any div
+    if (node->v.element.tag == GUMBO_TAG_DIV) {
+        // grab id attribute
+        GumboAttribute* idAttribute = gumbo_get_attribute(&node->v.element.attributes, "id");
+        if (idAttribute) {
+            // check if id fits
+            std::string idAttributeValue = idAttribute->value;
+            if (idAttributeValue.find("series_basic_info") != -1) {
+                return node;    // return node if id is correct
+            }
+        }
+    }
+
+    // if current node is not correct we keep searching recursively
+    GumboVector* children = &node->v.element.children;
+    for (unsigned int i = 0; i < children->length; i++) {
+        GumboNode* result = this->findBasicSeriesInfo(static_cast<GumboNode*>(children->data[i]));
+        if (result) 
+            return result;
+    }
+    return nullptr;    // none found!
+}
+
 Season* TVDBHandler::getSeasonData(const std::string& tvdbName, const int& season) {
-    std::string url = std::string(TVDB_BASE_URL) + "/" + tvdbName + "/seasons/official/" + std::to_string(season);
-    std::string html = getHtml(url);
+    std::string url = this->tvdb_url + "/" + tvdbName + "/seasons/official/" + std::to_string(season);
+    std::string html = this->getHtml(url);
     Season* seasonData;
     if (html.size() > 0) {
-        seasonData = parseSeason(html.c_str(), season);
-    } // else return NULL
+        seasonData = this->parseSeason(html.c_str(), season);
+    } // else return nullptr
     return seasonData;
 }
 

@@ -1,6 +1,8 @@
 #pragma once
 #include <string>
+#include <algorithm>
 #include <vector>
+#include <map>
 
 #include <curl/curl.h>
 #include <gumbo.h>
@@ -13,6 +15,7 @@ class TVDBHandler {
 		static TVDBHandler* createInstance(const std::string& tvdb_url, const std::string& tvdb_cache);
 		// returns the current TVDBHandler instance
 		static TVDBHandler* getInstance();
+		Series* TVDBHandler::getSeriesData(const std::string& tvdbName);
 		Season* getSeasonData(const std::string& tvdbName, const int& season);
 
 	private:
@@ -22,6 +25,10 @@ class TVDBHandler {
 		std::string tvdb_cache;
 
 		std::string getHtml(const std::string& url);
+
+		Series* parseSeries(const char* html, const std::string& tvdbName);
+		GumboNode* findBasicSeriesInfo(GumboNode* node);
+
 		Season* parseSeason(const char* html, int season);
 		GumboNode* findTbodyGumbo(GumboNode* node);
 };

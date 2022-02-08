@@ -82,6 +82,7 @@ void QBTHandler::authenticate() {
     curl_easy_cleanup(curl_handle);
 
     size_t cookiePos = header.find("SID=");
+    if (cookiePos == -1) throw "QBTHandler failed to authenticate.";
     this->key = header.substr(cookiePos+4, 32);
 
     return;

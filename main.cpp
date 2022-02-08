@@ -8,9 +8,7 @@
 #include "tvdb/TVDBHandler.h"
 #include "qbt/QBTHandler.h"
 
-int main(int argc, char *argv[]) {
-    curl_global_init(CURL_GLOBAL_ALL);
-
+static Json::Value readSettings() {
     // read settings file into string
     std::ifstream settingsFile{"settings.json"};
     if (!settingsFile.is_open())
@@ -25,6 +23,13 @@ int main(int argc, char *argv[]) {
     Json::Value settings;
     bool parsingSuccessful = reader->parse(settingsStr.c_str(), settingsStr.c_str() + settingsStr.size(), &settings, nullptr);
     delete reader;
+    return settings;
+}
+
+int main(int argc, char *argv[]) {
+    curl_global_init(CURL_GLOBAL_ALL);
+
+    Json::Value settings = readSettings();
 
     TVDBHandler* tvdb = TVDBHandler::createInstance(
         settings["tvdb_url"].asString(), settings["tvdb_cache"].asString()
@@ -33,6 +38,7 @@ int main(int argc, char *argv[]) {
         settings["qbt_url"].asString(), settings["qbt_username"].asString(), settings["qbt_password"].asString()
     );
 
+    Series* series = tvdb->getSeriesData("one-piece");
     Season* season = tvdb->getSeasonData("one-piece", 21);
     std::string test = qbt->getAppVersion();
     Json::Value test2 = qbt->getTorrentList();
