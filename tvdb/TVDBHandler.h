@@ -16,7 +16,7 @@ class TVDBHandler {
 		// returns the current TVDBHandler instance
 		static TVDBHandler* getInstance();
 		Series* TVDBHandler::getSeriesData(const std::string& tvdbName);
-		Season* getSeasonData(const std::string& tvdbName, const int& season);
+		Season* getSeasonData(const Series& series, const int& season);
 
 	private:
 		TVDBHandler(const std::string& tvdb_url, const std::string& tvdb_cache);	// private constructor for singleton
@@ -27,6 +27,7 @@ class TVDBHandler {
 		std::string getHtml(const std::string& url);
 
 		Series* parseSeries(const char* html, const std::string& tvdbName);
+		char* findSeriesName(GumboNode* node);
 		GumboNode* findBasicSeriesInfo(GumboNode* node);
 
 		Season* parseSeason(const char* html, int season);

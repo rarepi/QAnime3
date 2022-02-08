@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
     );
 
     Series* series = tvdb->getSeriesData("one-piece");
-    Season* season = tvdb->getSeasonData("one-piece", 21);
+    Season* season = tvdb->getSeasonData(*series, 21);
     std::string test = qbt->getAppVersion();
     Json::Value test2 = qbt->getTorrentList();
     //qbt->renameFile("db0ffe8174317b0b0ee4beb7b54f558bb9089746", "test.txt", "test_new.txt");

@@ -38,16 +38,6 @@ static inline void trim(std::string& s) {
     rtrim(s);
 }
 
-Series* TVDBHandler::getSeriesData(const std::string& tvdbName) {
-    std::string url = this->tvdb_url + "/" + tvdbName;
-    std::string html = this->getHtml(url);
-    Series* seriesData;
-    if (html.size() > 0) {
-        seriesData = this->parseSeries(html.c_str(), tvdbName);
-    } // else return nullptr
-    return seriesData;
-}
-
 Series* TVDBHandler::parseSeries(const char* html, const std::string& tvdbName) {
     if (!html) return nullptr;
     GumboOutput* htmlParsed = gumbo_parse(html);
@@ -56,7 +46,7 @@ Series* TVDBHandler::parseSeries(const char* html, const std::string& tvdbName) 
     // find basic series info div
     GumboNode* seriesInfoDiv = findBasicSeriesInfo(root);
     if (!seriesInfoDiv || seriesInfoDiv->v.element.children.length == 0) return nullptr;
-    
+
     // get first <ul>
     GumboNode* ul;
     for (int i = 0; i < seriesInfoDiv->v.element.children.length; i++) {
@@ -69,6 +59,11 @@ Series* TVDBHandler::parseSeries(const char* html, const std::string& tvdbName) 
         throw "parseSeries: Unexpected format. Couldn't find <ul> element.";
 
     Series* series = new Series(tvdbName);
+
+    std::string seriesName = this->findSeriesName(root);
+
+    series->setName(seriesName);
+
     std::vector<std::pair<std::string, std::string>> dataCollection;
 
     // iterate through all <li>
@@ -77,7 +72,7 @@ Series* TVDBHandler::parseSeries(const char* html, const std::string& tvdbName) 
         // check if node element <li>, else skip
         if (!li || li->type != GUMBO_NODE_ELEMENT || li->v.element.tag != GUMBO_TAG_LI)
             continue;
-        
+
         std::pair<std::string, std::string> data;
         // iterate through all children of <li>
         for (size_t j = 0; j < li->v.element.children.length; j++) {
@@ -99,7 +94,7 @@ Series* TVDBHandler::parseSeries(const char* html, const std::string& tvdbName) 
                 if (contentNode->type == GUMBO_NODE_ELEMENT && contentNode->v.element.tag == GUMBO_TAG_A)
                     contentNode = (GumboNode*)contentNode->v.element.children.data[0];
 
-                // write any qualified data into string pairs
+                // write any qualified data into string pair
                 if (contentNode->type == GUMBO_NODE_TEXT) {
                     switch (tag) {
                     case GUMBO_TAG_STRONG:  // description
@@ -108,7 +103,7 @@ Series* TVDBHandler::parseSeries(const char* html, const std::string& tvdbName) 
                     case GUMBO_TAG_SPAN:    // value
                         if (data.second.empty())
                             data.second = contentNode->v.text.text;
-                        else // case of multiple spans, we append these to the first span.
+                        else // case of multiple spans, we append these to the first span
                             data.second.append(", " + std::string(contentNode->v.text.text));
                         break;
                     }
@@ -123,13 +118,15 @@ Series* TVDBHandler::parseSeries(const char* html, const std::string& tvdbName) 
         // trim whitespace
         trim(data.first);
         trim(data.second);
-        
-        // remove duplicate whitespace within the string (wtf tvdb?)
+
+        // remove duplicate whitespace within the string (wtf tvdb?) and use normal space character only
         std::string::iterator new_end = std::unique(data.second.begin(),data.second.end(),
-                [&](char lhs, char rhs) -> bool {
-                    return (std::isspace(lhs) && std::isspace(rhs));
-                });
-        data.second.erase(new_end, data.second.end()); 
+            [&](char& lhs, char& rhs) -> bool {
+                if (std::isspace(lhs)) lhs = ' ';
+                if (std::isspace(rhs)) rhs = ' ';
+                return (std::isspace(lhs) && std::isspace(rhs));
+            });
+        data.second.erase(new_end, data.second.end());
 
         // pair descriptions of wanted information with Series class (ugly hardcoded way)
         // an alternative would be to use the order of elements for identification (which can break just as easily)
@@ -144,6 +141,47 @@ Series* TVDBHandler::parseSeries(const char* html, const std::string& tvdbName) 
     }
 
     return series;
+}
+
+char* TVDBHandler::findSeriesName(GumboNode* node) {
+    if (node->type != GUMBO_NODE_ELEMENT)
+        return nullptr;
+
+    // find any div
+    if (node->v.element.tag == GUMBO_TAG_DIV) {
+        // grab class and language attribute
+        GumboAttribute* classAttribute = gumbo_get_attribute(&node->v.element.attributes, "class");
+        GumboAttribute* langAttribute = gumbo_get_attribute(&node->v.element.attributes, "data-language");
+        if (classAttribute && langAttribute) {
+            // check if class and language fit
+            std::string classAttributeValue = classAttribute->value;
+            std::string langAttributeValue = langAttribute->value;
+            if (classAttributeValue.find("change_translation_text") != -1 && langAttributeValue.find("eng") != -1) {
+                GumboAttribute* nameAttribute = gumbo_get_attribute(&node->v.element.attributes, "data-title");
+                char* nameAttributeValue = (char*) nameAttribute->value;
+                return nameAttributeValue;    // return name
+            }
+        }
+    }
+
+    // if current node is not correct we keep searching recursively
+    GumboVector* children = &node->v.element.children;
+    for (unsigned int i = 0; i < children->length; i++) {
+        char* result = this->findSeriesName(static_cast<GumboNode*>(children->data[i]));
+        if (result) 
+            return result;
+    }
+    return nullptr;    // none found!
+}
+
+Series* TVDBHandler::getSeriesData(const std::string& tvdbName) {
+    std::string url = this->tvdb_url + "/" + tvdbName;
+    std::string html = this->getHtml(url);
+    Series* seriesData;
+    if (html.size() > 0) {
+        seriesData = this->parseSeries(html.c_str(), tvdbName);
+    } // else return nullptr
+    return seriesData;
 }
 
 GumboNode* TVDBHandler::findBasicSeriesInfo(GumboNode* node) {
@@ -173,8 +211,8 @@ GumboNode* TVDBHandler::findBasicSeriesInfo(GumboNode* node) {
     return nullptr;    // none found!
 }
 
-Season* TVDBHandler::getSeasonData(const std::string& tvdbName, const int& season) {
-    std::string url = this->tvdb_url + "/" + tvdbName + "/seasons/official/" + std::to_string(season);
+Season* TVDBHandler::getSeasonData(const Series& series, const int& season) {
+    std::string url = this->tvdb_url + "/" + series.getTVDBName() + "/seasons/official/" + std::to_string(season);
     std::string html = this->getHtml(url);
     Season* seasonData;
     if (html.size() > 0) {
