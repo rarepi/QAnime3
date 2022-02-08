@@ -38,14 +38,26 @@ static inline void trim(std::string& s) {
     rtrim(s);
 }
 
+Series* TVDBHandler::getSeriesData(const std::string& tvdbName) {
+    std::string url = this->tvdb_url + "/" + tvdbName;
+    std::string html = this->getHtml(url);
+    Series* seriesData;
+    if (html.size() > 0) {
+        seriesData = this->parseSeries(html.c_str(), tvdbName);
+    } // else return nullptr
+    return seriesData;
+}
+
 Series* TVDBHandler::parseSeries(const char* html, const std::string& tvdbName) {
     if (!html) return nullptr;
     GumboOutput* htmlParsed = gumbo_parse(html);
     GumboNode* root = htmlParsed->root;
+    if (root->type != GUMBO_NODE_ELEMENT) throw "parseSeries: root is no node element";
 
     // find basic series info div
     GumboNode* seriesInfoDiv = findBasicSeriesInfo(root);
-    if (!seriesInfoDiv || seriesInfoDiv->v.element.children.length == 0) return nullptr;
+    if (!seriesInfoDiv || (seriesInfoDiv->type != GUMBO_NODE_ELEMENT) || seriesInfoDiv->v.element.children.length == 0)
+        return nullptr;
 
     // get first <ul>
     GumboNode* ul;
@@ -174,16 +186,6 @@ char* TVDBHandler::findSeriesName(GumboNode* node) {
     return nullptr;    // none found!
 }
 
-Series* TVDBHandler::getSeriesData(const std::string& tvdbName) {
-    std::string url = this->tvdb_url + "/" + tvdbName;
-    std::string html = this->getHtml(url);
-    Series* seriesData;
-    if (html.size() > 0) {
-        seriesData = this->parseSeries(html.c_str(), tvdbName);
-    } // else return nullptr
-    return seriesData;
-}
-
 GumboNode* TVDBHandler::findBasicSeriesInfo(GumboNode* node) {
     if (node->type != GUMBO_NODE_ELEMENT)
         return nullptr;
@@ -214,7 +216,7 @@ GumboNode* TVDBHandler::findBasicSeriesInfo(GumboNode* node) {
 Season* TVDBHandler::getSeasonData(const Series& series, const int& season) {
     std::string url = this->tvdb_url + "/" + series.getTVDBName() + "/seasons/official/" + std::to_string(season);
     std::string html = this->getHtml(url);
-    Season* seasonData;
+    Season* seasonData; // = nullptr
     if (html.size() > 0) {
         seasonData = this->parseSeason(html.c_str(), season);
     } // else return nullptr
@@ -222,77 +224,80 @@ Season* TVDBHandler::getSeasonData(const Series& series, const int& season) {
 }
 
 Season* TVDBHandler::parseSeason(const char* html, int seasonNumber) {
-    if (!html) return NULL;
+    if (!html) return nullptr;
     GumboOutput* htmlParsed = gumbo_parse(html);
     GumboNode* root = htmlParsed->root;
+    if (root->type != GUMBO_NODE_ELEMENT) throw "parseSeason: root is no node element";
 
     // find table content (tbody tag)
     GumboNode* tbody = findTbodyGumbo(root);
-    if (!tbody) return NULL;
-    GumboVector tableChildren = tbody->v.element.children;
+    if (!tbody || tbody->type != GUMBO_NODE_ELEMENT) return nullptr;
 
     Season* season = new Season(seasonNumber);
 
     // iterate through all <tr>
-    for (size_t i = 0; i < tableChildren.length; i++) {
-        GumboNode* tr = (GumboNode*) tableChildren.data[i];
-        if (tr->v.element.tag == GUMBO_TAG_TR) {
-            GumboVector* trChildren = &tr->v.element.children;
-            Episode* ep;
+    for (size_t i = 0; i < tbody->v.element.children.length; i++) {
+        GumboNode* tr = (GumboNode*) tbody->v.element.children.data[i];
+        if (!tr || tr->type != GUMBO_NODE_ELEMENT || tr->v.element.tag != GUMBO_TAG_TR)
+            continue;
+            
+        Episode* ep;
 
-            // iterate through all <td>
-            for (size_t j = 0; j < trChildren->length; j++) {
-                GumboNode* td = (GumboNode*)trChildren->data[j];
-                if (td->v.element.tag == GUMBO_TAG_TD) {
-                    GumboVector tdChildren = td->v.element.children;
+        // iterate through all <td>
+        for (size_t j = 0; j < tr->v.element.children.length; j++) {
+            GumboNode* td = (GumboNode*) tr->v.element.children.data[j];
+            if (!td || td->type != GUMBO_NODE_ELEMENT || td->v.element.tag != GUMBO_TAG_TD)
+                continue;
 
-                    // iterate through all items in <td>
-                    for (size_t k = 0; k < tdChildren.length; k++) {
-                        GumboNode* contentNode = static_cast<GumboNode*>(tdChildren.data[k]);
-                        GumboNode* textNode;
-                        std::string data;
+            // iterate through all items in <td>
+            for (size_t k = 0; k < td->v.element.children.length; k++) {
+                GumboNode* contentNode = static_cast<GumboNode*>(td->v.element.children.data[k]);
+                // skip useless node types
+                if (contentNode->type != GUMBO_NODE_TEXT && contentNode->type != GUMBO_NODE_ELEMENT)
+                    continue;
 
-                        // determine item type by element tag
-                        switch (contentNode->v.element.tag) {
-                            // assume episode number
-                            case GUMBO_TAG_STYLE:
-                                data = contentNode->v.text.text;  // extract string "SxxExx"
-                                data.erase(0, data.find("E")+1);  // remove everything except for the ep number
-                                ep = new Episode(*season, data);
-                                break;
-                            // assume url & episode name
-                            case GUMBO_TAG_A:
-                                textNode = static_cast<GumboNode*>(contentNode->v.element.children.data[0]);
-                                data = textNode->v.text.text;
-                                trim(data);
-                                ep->setName(data);
-                                break;
-                            // assume first aired date OR broadcaster
-                            case GUMBO_TAG_DIV:
-                                // set date if unset, else set broadcaster
-                                textNode = static_cast<GumboNode*>(contentNode->v.element.children.data[0]);
-                                if (ep->getFirstAiredDate().empty()) {
-                                    ep->setFirstAiredDate(textNode->v.text.text);
-                                } else if (ep->getFirstAiredBroadcaster().empty()) {
-                                    ep->setFirstAiredBroadcaster(textNode->v.text.text);
-                                } //else throw "Third div encountered!"; // TODO
-                                break;
-                            // irrelevant, do nothing
-                            case GUMBO_TAG_I:
-                                break;
-                            // unknown tags
-                            case GUMBO_TAG_OL:
-                            case GUMBO_TAG_P:
-                            case GUMBO_TAG_RT:
-                            case GUMBO_TAG_MGLYPH:
-                            case GUMBO_TAG_KBD:
-                            case GUMBO_TAG_OUTPUT:
-                                break;
-                            default:
-                                //throw "Unknown tag encountered!"; // TODO stop after leaving tbody
-                                break;
-                        }
+                // temp data string for some basic string operations
+                std::string data;
+                // determine item type by element tag
+                switch (contentNode->v.element.tag) {
+                    // assume episode number
+                    case GUMBO_TAG_STYLE:
+                        if (contentNode->type != GUMBO_NODE_TEXT) break;
+
+                        data = contentNode->v.text.text;  // extract string "SxxExx"
+                        data.erase(0, data.find("E")+1);  // remove everything except for the episode number
+                        ep = new Episode(*season, data);
+                        break;
+                    // assume episode url & episode name
+                    case GUMBO_TAG_A:
+                    {
+                        if (contentNode->type != GUMBO_NODE_ELEMENT) break;
+
+                        // get episode url
+                        GumboAttribute* hrefAttribute = gumbo_get_attribute(&contentNode->v.element.attributes, "href");
+                        if (hrefAttribute) ep->setUrlTVDB(hrefAttribute->value);
+
+                        // get episode name
+                        contentNode = static_cast<GumboNode*>(contentNode->v.element.children.data[0]);
+                        data = contentNode->v.text.text;
+                        trim(data);
+                        ep->setName(data);
+                        break;
                     }
+                    // assume first aired date OR broadcaster
+                    case GUMBO_TAG_DIV:
+                        if (contentNode->type != GUMBO_NODE_ELEMENT) break;
+
+                        // set date if it's unset, else set broadcaster
+                        contentNode = static_cast<GumboNode*>(contentNode->v.element.children.data[0]);
+                        if (contentNode->type != GUMBO_NODE_TEXT) break;
+
+                        if (ep->getFirstAiredDate().empty()) {
+                            ep->setFirstAiredDate(contentNode->v.text.text);
+                        } else if (ep->getFirstAiredBroadcaster().empty()) {
+                            ep->setFirstAiredBroadcaster(contentNode->v.text.text);
+                        } //else throw "Third div encountered!"; // TODO
+                        break;
                 }
             }
         }
@@ -300,10 +305,10 @@ Season* TVDBHandler::parseSeason(const char* html, int seasonNumber) {
     return season;
 }
 
-// recursively find the first tbody in given gumbo tree
+// recursively find first <tbody> in given gumbo tree
 GumboNode* TVDBHandler::findTbodyGumbo(GumboNode* node) {
     if (node->type != GUMBO_NODE_ELEMENT)
-        return NULL;
+        return nullptr;
 
     if (node->v.element.tag == GUMBO_TAG_TBODY) {
         return node;
@@ -314,7 +319,7 @@ GumboNode* TVDBHandler::findTbodyGumbo(GumboNode* node) {
         GumboNode* tbody = findTbodyGumbo(static_cast<GumboNode*>(children->data[i]));
         if (tbody) return tbody;
     }
-    return NULL;    // none found!
+    return nullptr;    // none found!
 }
 
 // Source: https://stackoverflow.com/a/5525631/5920409
