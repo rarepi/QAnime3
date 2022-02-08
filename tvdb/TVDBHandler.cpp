@@ -1,5 +1,30 @@
 #include "TVDBHandler.h"
 
+// trim functions source: https://stackoverflow.com/a/217605/5920409
+static inline void ltrim(std::string& s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+        return !std::isspace(ch);
+        }));
+}
+
+static inline void rtrim(std::string& s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+        return !std::isspace(ch);
+        }).base(), s.end());
+}
+
+static inline void trim(std::string& s) {
+    ltrim(s);
+    rtrim(s);
+}
+
+// curl write function source: https://stackoverflow.com/a/5525631/5920409
+static size_t curl_to_string(void* contents, size_t size, size_t nmemb, void* userp) {
+    size_t realsize = size * nmemb;
+    static_cast<std::string*>(userp)->append(static_cast<char*>(contents), realsize);
+    return realsize;
+}
+
 // initialize pointer for first getInstance call
 TVDBHandler* TVDBHandler::instance = 0;
 
@@ -18,24 +43,6 @@ TVDBHandler* TVDBHandler::getInstance() {
     if (!instance)
         throw "TVDBHandler has not yet been initialized";
     return instance;
-}
-
-// trim functions source: https://stackoverflow.com/a/217605/5920409
-static inline void ltrim(std::string& s) {
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
-        return !std::isspace(ch);
-        }));
-}
-
-static inline void rtrim(std::string& s) {
-    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
-        return !std::isspace(ch);
-    }).base(), s.end());
-}
-
-static inline void trim(std::string& s) {
-    ltrim(s);
-    rtrim(s);
 }
 
 Series* TVDBHandler::getSeriesData(const std::string& tvdbName) {
@@ -320,13 +327,6 @@ GumboNode* TVDBHandler::findTbodyGumbo(GumboNode* node) {
         if (tbody) return tbody;
     }
     return nullptr;    // none found!
-}
-
-// Source: https://stackoverflow.com/a/5525631/5920409
-static size_t curl_to_string(void* contents, size_t size, size_t nmemb, void* userp) {
-    size_t realsize = size * nmemb;
-    static_cast<std::string*>(userp)->append(static_cast<char*>(contents), realsize);
-    return realsize;
 }
 
 std::string TVDBHandler::getHtml(const std::string &url) {
