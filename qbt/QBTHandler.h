@@ -1,4 +1,6 @@
 #pragma once
+#pragma warning( push )
+#pragma warning( disable : 26812 )
 #include <string>
 
 #include <curl/curl.h>
@@ -30,3 +32,5 @@ class QBTHandler {
 		std::string password;
 		std::string key;
 };
+
+#pragma warning( pop )

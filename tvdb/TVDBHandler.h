@@ -1,4 +1,7 @@
 #pragma once
+#pragma warning( push )
+#pragma warning( disable : 26812 )
+
 #include <string>
 #include <algorithm>
 #include <vector>
@@ -26,11 +29,15 @@ class TVDBHandler {
 
 		std::string getHtml(const std::string& url);
 
-		GumboNode* findNode(GumboNode* node, GumboTag tag, const char* attribute, const char* attributeValue);
+		GumboNode* TVDBHandler::findNode(GumboNode* node, 
+			GumboNodeType type, GumboTag tag, 
+			const char* attribute, const char* attributeValue);
 
-		Series* parseSeriesSeasons(const char* html);
+		std::map<int, int> collectSeriesSeasons(const char* html, const std::string order);
 
 		char* findSeriesName(GumboNode* node);
 		Series* parseSeriesHtml(const char* html, const std::string& tvdbName);
 		Season* parseSeasonHtml(const char* html, int season);
 };
+
+#pragma warning( pop )
