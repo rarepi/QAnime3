@@ -18,7 +18,6 @@ static inline void trim(std::string& s) {
     rtrim(s);
 }
 
-// curl write function source: https://stackoverflow.com/a/5525631/5920409
 static size_t curl_to_string(void* contents, size_t size, size_t nmemb, void* userp) {
     size_t realsize = size * nmemb;
     static_cast<std::string*>(userp)->append(static_cast<char*>(contents), realsize);
