@@ -45,6 +45,27 @@ TVDBHandler* TVDBHandler::getInstance() {
     return instance;
 }
 
+std::string TVDBHandler::getHtml(const std::string &url) {
+    CURL* curl_handle;
+    CURLcode res;
+
+    std::string data;
+
+    curl_handle = curl_easy_init();
+    curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, curl_to_string);
+    curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &data);
+    curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+    res = curl_easy_perform(curl_handle);
+
+    if (res != CURLE_OK) {
+        fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+    }
+
+    curl_easy_cleanup(curl_handle);
+    return data;
+}
+
 Series* TVDBHandler::getSeriesData(const std::string& tvdbName) {
     std::string url = this->tvdb_url + "/" + tvdbName;
     std::string html = this->getHtml(url);
@@ -53,6 +74,64 @@ Series* TVDBHandler::getSeriesData(const std::string& tvdbName) {
         seriesData = this->parseSeriesHtml(html.c_str(), tvdbName);
     } // else return nullptr
     return seriesData;
+}
+
+char* TVDBHandler::findSeriesName(GumboNode* node) {
+    if (node->type != GUMBO_NODE_ELEMENT)
+        return nullptr;
+
+    // find any div
+    if (node->v.element.tag == GUMBO_TAG_DIV) {
+        // grab class and language attribute
+        GumboAttribute* classAttribute = gumbo_get_attribute(&node->v.element.attributes, "class");
+        GumboAttribute* langAttribute = gumbo_get_attribute(&node->v.element.attributes, "data-language");
+        if (classAttribute && langAttribute) {
+            // check if class and language fit
+            std::string classAttributeValue = classAttribute->value;
+            std::string langAttributeValue = langAttribute->value;
+            if (classAttributeValue.find("change_translation_text") != -1 && langAttributeValue.find("eng") != -1) {
+                GumboAttribute* nameAttribute = gumbo_get_attribute(&node->v.element.attributes, "data-title");
+                char* nameAttributeValue = (char*) nameAttribute->value;
+                return nameAttributeValue;    // return name
+            }
+        }
+    }
+
+    // if current node is not correct we keep searching recursively
+    GumboVector* children = &node->v.element.children;
+    for (unsigned int i = 0; i < children->length; i++) {
+        char* result = this->findSeriesName(static_cast<GumboNode*>(children->data[i]));
+        if (result) 
+            return result;
+    }
+    return nullptr;    // none found!
+}
+
+GumboNode* TVDBHandler::findSeriesInfoNode(GumboNode* node) {
+    if (node->type != GUMBO_NODE_ELEMENT)
+        return nullptr;
+
+    // find any div
+    if (node->v.element.tag == GUMBO_TAG_DIV) {
+        // grab id attribute
+        GumboAttribute* idAttribute = gumbo_get_attribute(&node->v.element.attributes, "id");
+        if (idAttribute) {
+            // check if id fits
+            std::string idAttributeValue = idAttribute->value;
+            if (idAttributeValue.find("series_basic_info") != -1) {
+                return node;    // return node if id is correct
+            }
+        }
+    }
+
+    // if current node is not correct we keep searching recursively
+    GumboVector* children = &node->v.element.children;
+    for (unsigned int i = 0; i < children->length; i++) {
+        GumboNode* result = this->findSeriesInfoNode(static_cast<GumboNode*>(children->data[i]));
+        if (result) 
+            return result;
+    }
+    return nullptr;    // none found!
 }
 
 Series* TVDBHandler::parseSeriesHtml(const char* html, const std::string& tvdbName) {
@@ -162,64 +241,6 @@ Series* TVDBHandler::parseSeriesHtml(const char* html, const std::string& tvdbNa
     return series;
 }
 
-char* TVDBHandler::findSeriesName(GumboNode* node) {
-    if (node->type != GUMBO_NODE_ELEMENT)
-        return nullptr;
-
-    // find any div
-    if (node->v.element.tag == GUMBO_TAG_DIV) {
-        // grab class and language attribute
-        GumboAttribute* classAttribute = gumbo_get_attribute(&node->v.element.attributes, "class");
-        GumboAttribute* langAttribute = gumbo_get_attribute(&node->v.element.attributes, "data-language");
-        if (classAttribute && langAttribute) {
-            // check if class and language fit
-            std::string classAttributeValue = classAttribute->value;
-            std::string langAttributeValue = langAttribute->value;
-            if (classAttributeValue.find("change_translation_text") != -1 && langAttributeValue.find("eng") != -1) {
-                GumboAttribute* nameAttribute = gumbo_get_attribute(&node->v.element.attributes, "data-title");
-                char* nameAttributeValue = (char*) nameAttribute->value;
-                return nameAttributeValue;    // return name
-            }
-        }
-    }
-
-    // if current node is not correct we keep searching recursively
-    GumboVector* children = &node->v.element.children;
-    for (unsigned int i = 0; i < children->length; i++) {
-        char* result = this->findSeriesName(static_cast<GumboNode*>(children->data[i]));
-        if (result) 
-            return result;
-    }
-    return nullptr;    // none found!
-}
-
-GumboNode* TVDBHandler::findSeriesInfoNode(GumboNode* node) {
-    if (node->type != GUMBO_NODE_ELEMENT)
-        return nullptr;
-
-    // find any div
-    if (node->v.element.tag == GUMBO_TAG_DIV) {
-        // grab id attribute
-        GumboAttribute* idAttribute = gumbo_get_attribute(&node->v.element.attributes, "id");
-        if (idAttribute) {
-            // check if id fits
-            std::string idAttributeValue = idAttribute->value;
-            if (idAttributeValue.find("series_basic_info") != -1) {
-                return node;    // return node if id is correct
-            }
-        }
-    }
-
-    // if current node is not correct we keep searching recursively
-    GumboVector* children = &node->v.element.children;
-    for (unsigned int i = 0; i < children->length; i++) {
-        GumboNode* result = this->findSeriesInfoNode(static_cast<GumboNode*>(children->data[i]));
-        if (result) 
-            return result;
-    }
-    return nullptr;    // none found!
-}
-
 Season* TVDBHandler::getSeasonData(const Series& series, const int& season) {
     std::string url = this->tvdb_url + "/" + series.getTVDBName() + "/seasons/official/" + std::to_string(season);
     std::string html = this->getHtml(url);
@@ -228,6 +249,23 @@ Season* TVDBHandler::getSeasonData(const Series& series, const int& season) {
         seasonData = this->parseSeasonHtml(html.c_str(), season);
     } // else return nullptr
     return seasonData;
+}
+
+// recursively find first <tbody> in given gumbo tree
+GumboNode* TVDBHandler::findTbodyNode(GumboNode* node) {
+    if (node->type != GUMBO_NODE_ELEMENT)
+        return nullptr;
+
+    if (node->v.element.tag == GUMBO_TAG_TBODY) {
+        return node;
+    }
+
+    GumboVector* children = &node->v.element.children;
+    for (unsigned int i = 0; i < children->length; i++) {
+        GumboNode* tbody = findTbodyNode(static_cast<GumboNode*>(children->data[i]));
+        if (tbody) return tbody;
+    }
+    return nullptr;    // none found!
 }
 
 Season* TVDBHandler::parseSeasonHtml(const char* html, int seasonNumber) {
@@ -310,42 +348,4 @@ Season* TVDBHandler::parseSeasonHtml(const char* html, int seasonNumber) {
         }
     }
     return season;
-}
-
-// recursively find first <tbody> in given gumbo tree
-GumboNode* TVDBHandler::findTbodyNode(GumboNode* node) {
-    if (node->type != GUMBO_NODE_ELEMENT)
-        return nullptr;
-
-    if (node->v.element.tag == GUMBO_TAG_TBODY) {
-        return node;
-    }
-
-    GumboVector* children = &node->v.element.children;
-    for (unsigned int i = 0; i < children->length; i++) {
-        GumboNode* tbody = findTbodyNode(static_cast<GumboNode*>(children->data[i]));
-        if (tbody) return tbody;
-    }
-    return nullptr;    // none found!
-}
-
-std::string TVDBHandler::getHtml(const std::string &url) {
-    CURL* curl_handle;
-    CURLcode res;
-
-    std::string data;
-
-    curl_handle = curl_easy_init();
-    curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, curl_to_string);
-    curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &data);
-    curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
-    res = curl_easy_perform(curl_handle);
-
-    if (res != CURLE_OK) {
-        fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
-    }
-
-    curl_easy_cleanup(curl_handle);
-    return data;
 }
