@@ -122,11 +122,9 @@ Series* TVDBHandler::parseSeries(const char* html, const std::string& tvdbName) 
         // remove duplicate whitespace within the string (wtf tvdb?) and use normal space character only
         std::string::iterator new_end = std::unique(data.second.begin(),data.second.end(),
             [&](char& lhs, char& rhs) -> bool {
-                if (std::isspace(lhs) && std::isspace(rhs)) {
-                    lhs = ' ';
-                    rhs = ' ';
-                    return true;
-                } return false;
+                if (std::isspace(lhs)) lhs = ' ';
+                if (std::isspace(rhs)) rhs = ' ';
+                return (std::isspace(lhs) && std::isspace(rhs));
             });
         data.second.erase(new_end, data.second.end());
 
