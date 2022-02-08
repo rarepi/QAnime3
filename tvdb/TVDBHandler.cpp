@@ -94,7 +94,7 @@ GumboNode* TVDBHandler::findNode(GumboNode* node, GumboTag tag, const char* attr
     // if current node does not match we keep searching recursively
     GumboVector* children = &node->v.element.children;
     for (unsigned int i = 0; i < children->length; i++) {
-        GumboNode* result = this->findNode(static_cast<GumboNode*>(children->data[i]));
+        GumboNode* result = this->findNode(static_cast<GumboNode*>(children->data[i]), tag, attribute, attributeValue);
         if (result) 
             return result;
     }
