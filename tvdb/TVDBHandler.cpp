@@ -50,19 +50,19 @@ Series* TVDBHandler::getSeriesData(const std::string& tvdbName) {
     std::string html = this->getHtml(url);
     Series* seriesData;
     if (html.size() > 0) {
-        seriesData = this->parseSeries(html.c_str(), tvdbName);
+        seriesData = this->parseSeriesHtml(html.c_str(), tvdbName);
     } // else return nullptr
     return seriesData;
 }
 
-Series* TVDBHandler::parseSeries(const char* html, const std::string& tvdbName) {
+Series* TVDBHandler::parseSeriesHtml(const char* html, const std::string& tvdbName) {
     if (!html) return nullptr;
     GumboOutput* htmlParsed = gumbo_parse(html);
     GumboNode* root = htmlParsed->root;
     if (root->type != GUMBO_NODE_ELEMENT) throw "parseSeries: root is no node element";
 
     // find basic series info div
-    GumboNode* seriesInfoDiv = findBasicSeriesInfo(root);
+    GumboNode* seriesInfoDiv = findSeriesInfoNode(root);
     if (!seriesInfoDiv || (seriesInfoDiv->type != GUMBO_NODE_ELEMENT) || seriesInfoDiv->v.element.children.length == 0)
         return nullptr;
 
@@ -193,7 +193,7 @@ char* TVDBHandler::findSeriesName(GumboNode* node) {
     return nullptr;    // none found!
 }
 
-GumboNode* TVDBHandler::findBasicSeriesInfo(GumboNode* node) {
+GumboNode* TVDBHandler::findSeriesInfoNode(GumboNode* node) {
     if (node->type != GUMBO_NODE_ELEMENT)
         return nullptr;
 
@@ -213,7 +213,7 @@ GumboNode* TVDBHandler::findBasicSeriesInfo(GumboNode* node) {
     // if current node is not correct we keep searching recursively
     GumboVector* children = &node->v.element.children;
     for (unsigned int i = 0; i < children->length; i++) {
-        GumboNode* result = this->findBasicSeriesInfo(static_cast<GumboNode*>(children->data[i]));
+        GumboNode* result = this->findSeriesInfoNode(static_cast<GumboNode*>(children->data[i]));
         if (result) 
             return result;
     }
@@ -225,19 +225,19 @@ Season* TVDBHandler::getSeasonData(const Series& series, const int& season) {
     std::string html = this->getHtml(url);
     Season* seasonData; // = nullptr
     if (html.size() > 0) {
-        seasonData = this->parseSeason(html.c_str(), season);
+        seasonData = this->parseSeasonHtml(html.c_str(), season);
     } // else return nullptr
     return seasonData;
 }
 
-Season* TVDBHandler::parseSeason(const char* html, int seasonNumber) {
+Season* TVDBHandler::parseSeasonHtml(const char* html, int seasonNumber) {
     if (!html) return nullptr;
     GumboOutput* htmlParsed = gumbo_parse(html);
     GumboNode* root = htmlParsed->root;
     if (root->type != GUMBO_NODE_ELEMENT) throw "parseSeason: root is no node element";
 
     // find table content (tbody tag)
-    GumboNode* tbody = findTbodyGumbo(root);
+    GumboNode* tbody = findTbodyNode(root);
     if (!tbody || tbody->type != GUMBO_NODE_ELEMENT) return nullptr;
 
     Season* season = new Season(seasonNumber);
@@ -313,7 +313,7 @@ Season* TVDBHandler::parseSeason(const char* html, int seasonNumber) {
 }
 
 // recursively find first <tbody> in given gumbo tree
-GumboNode* TVDBHandler::findTbodyGumbo(GumboNode* node) {
+GumboNode* TVDBHandler::findTbodyNode(GumboNode* node) {
     if (node->type != GUMBO_NODE_ELEMENT)
         return nullptr;
 
@@ -323,7 +323,7 @@ GumboNode* TVDBHandler::findTbodyGumbo(GumboNode* node) {
 
     GumboVector* children = &node->v.element.children;
     for (unsigned int i = 0; i < children->length; i++) {
-        GumboNode* tbody = findTbodyGumbo(static_cast<GumboNode*>(children->data[i]));
+        GumboNode* tbody = findTbodyNode(static_cast<GumboNode*>(children->data[i]));
         if (tbody) return tbody;
     }
     return nullptr;    // none found!

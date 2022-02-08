@@ -26,10 +26,10 @@ class TVDBHandler {
 
 		std::string getHtml(const std::string& url);
 
-		Series* parseSeries(const char* html, const std::string& tvdbName);
+		Series* parseSeriesHtml(const char* html, const std::string& tvdbName);
 		char* findSeriesName(GumboNode* node);
-		GumboNode* findBasicSeriesInfo(GumboNode* node);
+		GumboNode* findSeriesInfoNode(GumboNode* node);
 
-		Season* parseSeason(const char* html, int season);
-		GumboNode* findTbodyGumbo(GumboNode* node);
+		Season* parseSeasonHtml(const char* html, int season);
+		GumboNode* findTbodyNode(GumboNode* node);
 };
