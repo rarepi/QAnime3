@@ -150,7 +150,7 @@ Series* TVDBHandler::parseSeriesHtml(const char* html, const std::string& tvdbNa
     if (!html) return nullptr;
     GumboOutput* htmlParsed = gumbo_parse(html);
     GumboNode* root = htmlParsed->root;
-    if (root->type != GUMBO_NODE_ELEMENT) throw "parseSeries: root is no node element";
+    if (root->type != GUMBO_NODE_ELEMENT) throw "parseSeriesHtml: root is no node element";
 
     // find basic series info div
     GumboNode* seriesInfoDiv = findNode(root, GUMBO_NODE_ELEMENT, GUMBO_TAG_DIV, "id", "series_basic_info");
@@ -158,15 +158,8 @@ Series* TVDBHandler::parseSeriesHtml(const char* html, const std::string& tvdbNa
         return nullptr;
 
     // get first <ul>
-    GumboNode* ul;
-    for (int i = 0; i < seriesInfoDiv->v.element.children.length; i++) {
-        ul = (GumboNode*)seriesInfoDiv->v.element.children.data[i];
-        if (ul->v.element.tag == GUMBO_TAG_UL)
-            break;
-    }
-    // check if node element <ul>, else the html is in an unexpected format
-    if (ul->type != GUMBO_NODE_ELEMENT || ul->v.element.tag != GUMBO_TAG_UL)
-        throw "parseSeries: Unexpected format. Couldn't find <ul> element.";
+    GumboNode* ul = findNode(seriesInfoDiv, GUMBO_NODE_ELEMENT, GUMBO_TAG_UL);
+    if (!ul) throw "parseSeriesHtml: Unexpected format. Couldn't find <ul> element.";
 
     Series* series = new Series(tvdbName);
     std::string seriesName = this->findSeriesName(root);
@@ -192,8 +185,8 @@ Series* TVDBHandler::parseSeriesHtml(const char* html, const std::string& tvdbNa
                 continue;
 
             // save node tag for next step and check if it's either a <strong> or <span>, else skip
-            GumboTag tag = li_child->v.element.tag;
-            if (tag != GUMBO_TAG_STRONG && tag != GUMBO_TAG_SPAN)
+            GumboTag elementNodeTag = li_child->v.element.tag;
+            if (elementNodeTag != GUMBO_TAG_STRONG && elementNodeTag != GUMBO_TAG_SPAN)
                 continue;
 
             // iterate through the <strong>'s and <span>'s content nodes
@@ -205,7 +198,7 @@ Series* TVDBHandler::parseSeriesHtml(const char* html, const std::string& tvdbNa
 
                 // write any qualified data into string pair
                 if (contentNode->type == GUMBO_NODE_TEXT) {
-                    switch (tag) {
+                    switch (elementNodeTag) {
                     case GUMBO_TAG_STRONG:  // description
                         data.first = contentNode->v.text.text;
                         break;
