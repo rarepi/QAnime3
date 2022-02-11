@@ -351,7 +351,7 @@ Season* TVDBHandler::parseSeasonHtml(const char* html, Season* season) {
 
                         // get episode url
                         GumboAttribute* hrefAttribute = gumbo_get_attribute(&contentNode->v.element.attributes, "href");
-                        if (hrefAttribute) ep->setUrlTVDB(hrefAttribute->value);
+                        if (hrefAttribute) ep->setTVDBUrl(hrefAttribute->value);
 
                         // get episode name
                         contentNode = static_cast<GumboNode*>(contentNode->v.element.children.data[0]);
