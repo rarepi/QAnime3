@@ -48,6 +48,9 @@ int main(int argc, char *argv[]) {
     storage->addSeries(*series);
     storage->addSeason(*season);
 
+    storage->updateSeries(*series);
+    storage->deleteSeries(*series);
+
     std::string test = qbt->getAppVersion();
     Json::Value test2 = qbt->getTorrentList();
     //qbt->renameFile("db0ffe8174317b0b0ee4beb7b54f558bb9089746", "test.txt", "test_new.txt");

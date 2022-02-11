@@ -1,23 +1,24 @@
 #include "StorageHandler.h"
 
-SqlItem::SqlItem(std::string name, std::string value) {
-    this->name = name;
-    this->value = value;
+SqlItem::SqlItem(std::string first, std::string second) {
+    this->first = first;
+    this->second = second;
 }
 
-SqlStatement::SqlStatement(SQL_COMMAND command, std::string argument) {
+SqlStatement::SqlStatement(SQL_COMMAND command, std::string table) {
     this->type = command;
     switch (command) {
     case SQL_COMMAND::CREATE_TABLE:
-        this->statement << "PRAGMA foreign_keys = ON; CREATE TABLE IF NOT EXISTS ";
-        this->statement << argument << "(";
+        this->statement << "PRAGMA foreign_keys = ON; CREATE TABLE IF NOT EXISTS " << table << "(\n";
         break;
     case SQL_COMMAND::INSERT:
-        this->statement << "INSERT INTO ";
-        this->statement << argument;
+        this->statement << "INSERT INTO " << table << "(\n";
+        break;
+    case SQL_COMMAND::UPDATE:
+        this->statement << "UPDATE " << table << "\n";
         break;
     case SQL_COMMAND::DELETE:
-        // TODO
+        this->statement << "DELETE FROM " << table << "\n";
         break;
     default:
         break;
@@ -31,11 +32,10 @@ void SqlStatement::addItem(std::string name, std::string value) {
         this->items.push_back(SqlItem(name, value));
         break;
     case SQL_COMMAND::INSERT:
-        this->items.push_back(SqlItem("'" + name + "'", value));
+    case SQL_COMMAND::UPDATE:
+        this->items.push_back(SqlItem(name, "'" + value + "'"));
         break;
     case SQL_COMMAND::DELETE:
-        // TODO
-        break;
     default:
         break;
     }
@@ -48,11 +48,38 @@ void SqlStatement::addItem(std::string name, int value) {
         this->items.push_back(SqlItem(name, std::to_string(value)));
         break;
     case SQL_COMMAND::INSERT:
-        this->items.push_back(SqlItem("'" + name + "'", std::to_string(value)));
+    case SQL_COMMAND::UPDATE:
+        this->items.push_back(SqlItem(name, "'" + std::to_string(value) + "'"));
         break;
     case SQL_COMMAND::DELETE:
-        // TODO
+    default:
         break;
+    }
+}
+
+void SqlStatement::addCondition(std::string column, std::string value) {
+    switch (this->type)
+    {
+    case SQL_COMMAND::INSERT:
+    case SQL_COMMAND::UPDATE:
+    case SQL_COMMAND::DELETE:
+        this->conditions.push_back(SqlItem(column, "'" + value + "'"));
+        break;
+    case SQL_COMMAND::CREATE_TABLE:
+    default:
+        break;
+    }
+}
+
+void SqlStatement::addCondition(std::string column, int value) {
+    switch (this->type)
+    {
+    case SQL_COMMAND::INSERT:
+    case SQL_COMMAND::UPDATE:
+    case SQL_COMMAND::DELETE:
+        this->conditions.push_back(SqlItem(column, "'" + std::to_string(value) + "'"));
+        break;
+    case SQL_COMMAND::CREATE_TABLE:
     default:
         break;
     }
@@ -64,35 +91,59 @@ std::string SqlStatement::buildSql() {
     case SQL_COMMAND::CREATE_TABLE:
         {
             std::string delimiter = "";
-            for (SqlItem item : items) {
-                this->statement << delimiter << item.name << " " << item.value;
-                delimiter = ",";
+            for (SqlItem item : this->items) {
+                this->statement << delimiter << item.first << " " << item.second;
+                delimiter = ",\n";
             }
             this->statement << ");";
         }
         break;
     case SQL_COMMAND::INSERT:
         {
-        std::string names;
-        std::string values = "VALUES(";
-        std::string delimiter = "";
-        for (SqlItem item : items) {
-            names += delimiter + item.name;
-            values += delimiter + item.value;
-            delimiter = ",";
-        }
-        names += ")";
-        values += ")";
-        this->statement << names + values + ";";
+            std::string names;
+            std::string values = "VALUES(";
+            std::string delimiter = "";
+            for (SqlItem item : this->items) {
+                names += delimiter + item.first;
+                values += delimiter + item.second;
+                delimiter = ",";
+            }
+            names += ")";
+            values += ")";
+            this->statement << names << "\n" << values << ";";
         }
         break;
+    case SQL_COMMAND::UPDATE:
+        {
+            this->statement << "SET ";
+            std::string delimiter = "";
+            for (SqlItem item : this->items) {
+                this->statement << delimiter << item.first << " = " << item.second;
+                delimiter = ",\n";
+            }
+            this->statement << " WHERE ";
+            delimiter = "";
+            for (SqlItem condition : this->conditions) {
+                this->statement << delimiter << condition.first << " = " << condition.second;
+                delimiter = "\nAND ";
+            }
+            this->statement << ";";
+        }
+    break;
     case SQL_COMMAND::DELETE:
-        // TODO
+        {
+            this->statement << " WHERE ";
+            std::string delimiter = "";
+            for (SqlItem condition : this->conditions) {
+                this->statement << delimiter << condition.first << " = " << condition.second;
+                delimiter = "\nAND ";
+            }
+        }
         break;
     default:
         break;
     }
-    //std::string result = this->statement.str();
+
     return this->statement.str();
 }
 
@@ -165,53 +216,156 @@ void StorageHandler::setupTables() {
     return;
 }
 
-void StorageHandler::addSeries(Series& data) {
+void StorageHandler::addSeries(Series& series) {
     this->open();
 
     char* err;
 
     SqlStatement statement(SQL_COMMAND::INSERT, "Series");
-    statement.addItem("id", data.getId());
-    statement.addItem("name", data.getName());
-    statement.addItem("tvdb_name", data.getTVDBName());
-    statement.addItem("air_rhythm", data.getAirRhythm());
-    statement.addItem("first_aired_date", data.getFirstAiredDate());
-    statement.addItem("first_aired_broadcaster", data.getFirstAiredBroadcaster());
+    statement.addItem("id", series.getId());
+    statement.addItem("name", series.getName());
+    statement.addItem("tvdb_name", series.getTVDBName());
+    statement.addItem("air_rhythm", series.getAirRhythm());
+    statement.addItem("first_aired_date", series.getFirstAiredDate());
+    statement.addItem("first_aired_broadcaster", series.getFirstAiredBroadcaster());
     std::string sql = statement.buildSql();
     int rc = sqlite3_exec(this->connection, sql.c_str(), 0, 0, &err);
 
     this->close();
 }
 
-void StorageHandler::addSeason(Season& data) {
+void StorageHandler::updateSeries(Series& series) {
+    this->open();
+
+    char* err;
+
+    SqlStatement statement(SQL_COMMAND::UPDATE, "Series");
+    statement.addItem("id", series.getId());
+    statement.addItem("name", series.getName());
+    statement.addItem("tvdb_name", series.getTVDBName());
+    statement.addItem("air_rhythm", series.getAirRhythm());
+    statement.addItem("first_aired_date", series.getFirstAiredDate());
+    statement.addItem("first_aired_broadcaster", series.getFirstAiredBroadcaster());
+    statement.addCondition("id", series.getId());
+    std::string sql = statement.buildSql();
+    int rc = sqlite3_exec(this->connection, sql.c_str(), 0, 0, &err);
+
+    this->close();
+}
+
+void StorageHandler::deleteSeries(Series& series) {
+    this->open();
+
+    char* err;
+
+    SqlStatement statement(SQL_COMMAND::DELETE, "Series");
+    statement.addCondition("id", series.getId());
+    std::string sql = statement.buildSql();
+    int rc = sqlite3_exec(this->connection, sql.c_str(), 0, 0, &err);
+
+    this->close();
+}
+
+void StorageHandler::addSeason(Season& season) {
     this->open();
 
     char* err;
 
     SqlStatement statement(SQL_COMMAND::INSERT, "Season");
-    statement.addItem("id", data.getId());
-    statement.addItem("name", data.getName());
-    statement.addItem("series_id", data.getSeries()->getId());
+    statement.addItem("id", season.getId());
+    statement.addItem("name", season.getName());
+    statement.addItem("series_id", season.getSeries()->getId());
     std::string sql = statement.buildSql();
     int rc = sqlite3_exec(this->connection, sql.c_str(), 0, 0, &err);
 
     this->close();
 }
 
-void StorageHandler::addEpisode(Episode& data) {
+void StorageHandler::updateSeason(Season& season)
+{
+    this->open();
+
+    char* err;
+
+    SqlStatement statement(SQL_COMMAND::UPDATE, "Season");
+    statement.addItem("id", season.getId());
+    statement.addItem("name", season.getName());
+    statement.addItem("series_id", season.getSeries()->getId());
+    statement.addCondition("id", season.getId());
+    statement.addCondition("series_id", season.getSeries()->getId());
+    std::string sql = statement.buildSql();
+    int rc = sqlite3_exec(this->connection, sql.c_str(), 0, 0, &err);
+
+    this->close();
+}
+
+void StorageHandler::deleteSeason(Season& season)
+{
+    this->open();
+
+    char* err;
+
+    SqlStatement statement(SQL_COMMAND::DELETE, "Season");
+    statement.addCondition("id", season.getId());
+    statement.addCondition("series_id", season.getSeries()->getId());
+    std::string sql = statement.buildSql();
+    int rc = sqlite3_exec(this->connection, sql.c_str(), 0, 0, &err);
+
+    this->close();
+}
+
+void StorageHandler::addEpisode(Episode& episode) {
     this->open();
 
     char* err;
 
     SqlStatement statement(SQL_COMMAND::INSERT, "Episode");
-    statement.addItem("id", data.getId());
-    statement.addItem("name", data.getName());
-    statement.addItem("absolute", data.getAbsolute());
-    statement.addItem("runtime", data.getRuntime());
-    statement.addItem("first_aired_date", data.getFirstAiredDate());
-    statement.addItem("first_aired_broadcaster", data.getFirstAiredBroadcaster());
-    statement.addItem("tvdb_url", data.getTVDBUrl());
-    statement.addItem("season_id", data.getSeason()->getId());
+    statement.addItem("id", episode.getId());
+    statement.addItem("name", episode.getName());
+    statement.addItem("absolute", episode.getAbsolute());
+    statement.addItem("runtime", episode.getRuntime());
+    statement.addItem("first_aired_date", episode.getFirstAiredDate());
+    statement.addItem("first_aired_broadcaster", episode.getFirstAiredBroadcaster());
+    statement.addItem("tvdb_url", episode.getTVDBUrl());
+    statement.addItem("season_id", episode.getSeason()->getId());
+    std::string sql = statement.buildSql();
+    sqlite3_exec(this->connection, sql.c_str(), 0, 0, &err);
+
+    this->close();
+}
+
+void StorageHandler::updateEpisode(Episode& episode)
+{
+    this->open();
+
+    char* err;
+
+    SqlStatement statement(SQL_COMMAND::UPDATE, "Episode");
+    statement.addItem("id", episode.getId());
+    statement.addItem("name", episode.getName());
+    statement.addItem("absolute", episode.getAbsolute());
+    statement.addItem("runtime", episode.getRuntime());
+    statement.addItem("first_aired_date", episode.getFirstAiredDate());
+    statement.addItem("first_aired_broadcaster", episode.getFirstAiredBroadcaster());
+    statement.addItem("tvdb_url", episode.getTVDBUrl());
+    statement.addItem("season_id", episode.getSeason()->getId());
+    statement.addCondition("id", episode.getId());
+    statement.addCondition("season_id", episode.getSeason()->getId());
+    std::string sql = statement.buildSql();
+    sqlite3_exec(this->connection, sql.c_str(), 0, 0, &err);
+
+    this->close();
+}
+
+void StorageHandler::deleteEpisode(Episode& episode)
+{
+    this->open();
+
+    char* err;
+
+    SqlStatement statement(SQL_COMMAND::DELETE, "Episode");
+    statement.addCondition("id", episode.getId());
+    statement.addCondition("season_id", episode.getSeason()->getId());
     std::string sql = statement.buildSql();
     sqlite3_exec(this->connection, sql.c_str(), 0, 0, &err);
 
