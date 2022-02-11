@@ -8,10 +8,11 @@ class Series;
 
 class Season : public Metadata {
 	public:
-		Season(int id); // TODO remove
-		Season(Series* series, int id);
+		Season(Series& series, int id);
 		~Season();
 
+		void setSeries(Series& series);
+		const Series* getSeries() const;
 		void addEpisode(Episode* episode);
 		const std::vector<Episode*>& getEpisodes() const;
 

@@ -1,13 +1,18 @@
 #include "Season.h"
 #include "Series.h"
 
-Season::Season(int id) {
+Season::Season(Series& series, int id) {
 	this->setId(id);
+	this->setSeries(series);
 }
 
-Season::Season(Series* series, int id) {
-	series->addSeason(this);
-	this->series = series;
+void Season::setSeries(Series& series) {
+	series.addSeason(this);
+	this->series = &series;
+}
+
+const Series* Season::getSeries() const {
+	return this->series;
 }
 
 void Season::addEpisode(Episode* episode) {

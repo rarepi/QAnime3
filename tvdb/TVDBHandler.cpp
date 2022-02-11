@@ -289,17 +289,19 @@ std::map<int, int> TVDBHandler::collectSeriesSeasons(const char* html, const std
     return dataCollection;
 }
 
-Season* TVDBHandler::getSeasonData(const Series& series, const int& season) {
-    std::string url = this->tvdb_url + "/" + series.getTVDBName() + "/seasons/official/" + std::to_string(season);
+Season* TVDBHandler::getSeasonData(Series& series, int seasonNumber) {
+    std::string url = this->tvdb_url + "/" + series.getTVDBName() + "/seasons/official/" + std::to_string(seasonNumber);
     std::string html = this->getHtml(url);
-    Season* seasonData; // = nullptr
+    Season* season = new Season(series, seasonNumber);
     if (html.size() > 0) {
-        seasonData = this->parseSeasonHtml(html.c_str(), season);
-    } // else return nullptr
-    return seasonData;
+        season = this->parseSeasonHtml(html.c_str(), season);
+        return season;
+    } else {
+        return nullptr;
+    }
 }
 
-Season* TVDBHandler::parseSeasonHtml(const char* html, int seasonNumber) {
+Season* TVDBHandler::parseSeasonHtml(const char* html, Season* season) {
     if (!html) return nullptr;
     GumboOutput* htmlParsed = gumbo_parse(html);
     GumboNode* root = htmlParsed->root;
@@ -308,8 +310,6 @@ Season* TVDBHandler::parseSeasonHtml(const char* html, int seasonNumber) {
     // find table content (tbody tag)
     GumboNode* tbody = findNode(root, GUMBO_NODE_ELEMENT, GUMBO_TAG_TBODY);
     if (!tbody) return nullptr;
-
-    Season* season = new Season(seasonNumber);
 
     // iterate through all <tr>
     for (size_t i = 0; i < tbody->v.element.children.length; i++) {

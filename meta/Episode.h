@@ -14,7 +14,7 @@ class Episode : public Metadata {
 		void setRuntime(const unsigned int ms);
 		void setFirstAiredDate(const std::string firstAiredDate);
 		void setFirstAiredBroadcaster(const std::string firstAiredBroadcaster);
-		void setUrlTVDB(const std::string urlTVDB);
+		void setUrlTVDB(const std::string TVDBUrl);
 
 		const Season* getSeason() const;
 		const int getAbsolute() const;
@@ -25,9 +25,9 @@ class Episode : public Metadata {
 
 	private:
 		Season* season;
-		int absolute;
-		int runtime;
+		int absolute = -1;
+		int runtime = -1;
 		std::string firstAiredDate;
 		std::string firstAiredBroadcaster;
-		std::string urlTVDB;
+		std::string TVDBUrl;
 };

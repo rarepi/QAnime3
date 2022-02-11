@@ -26,8 +26,8 @@ void Episode::setFirstAiredDate(std::string firstAiredDate) {
 void Episode::setFirstAiredBroadcaster(std::string firstAiredBroadcaster) {
 	this->firstAiredBroadcaster = firstAiredBroadcaster;
 }
-void Episode::setUrlTVDB(std::string urlTVDB) {
-	this->urlTVDB = urlTVDB;
+void Episode::setUrlTVDB(std::string TVDBUrl) {
+	this->TVDBUrl = TVDBUrl;
 }
 
 const Season* Episode::getSeason() const {
@@ -46,5 +46,5 @@ const std::string Episode::getFirstAiredBroadcaster() const {
 	return this->firstAiredBroadcaster;
 }
 const std::string Episode::getUrlTVDB() const {
-	return this->urlTVDB;
+	return this->TVDBUrl;
 }

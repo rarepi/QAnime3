@@ -7,6 +7,7 @@
 
 #include "tvdb/TVDBHandler.h"
 #include "qbt/QBTHandler.h"
+#include "storage/StorageHandler.h"
 
 static Json::Value readSettings() {
     // read settings file into string
@@ -37,9 +38,16 @@ int main(int argc, char *argv[]) {
     QBTHandler* qbt = QBTHandler::createInstance(
         settings["qbt_url"].asString(), settings["qbt_username"].asString(), settings["qbt_password"].asString()
     );
+    StorageHandler* storage = StorageHandler::createInstance(
+        settings["storage_filename"].asString()
+    );
 
     Series* series = tvdb->getSeriesData("one-piece");
     Season* season = tvdb->getSeasonData(*series, 21);
+
+    storage->addSeries(*series);
+    storage->addSeason(*season);
+
     std::string test = qbt->getAppVersion();
     Json::Value test2 = qbt->getTorrentList();
     //qbt->renameFile("db0ffe8174317b0b0ee4beb7b54f558bb9089746", "test.txt", "test_new.txt");

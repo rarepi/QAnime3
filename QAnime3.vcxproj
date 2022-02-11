@@ -113,6 +113,7 @@
     <ClCompile Include="meta\Series.cpp" />
     <ClCompile Include="qbt\QBTHandler.cpp" />
     <ClCompile Include="SeriesSelection.cpp" />
+    <ClCompile Include="storage\StorageHandler.cpp" />
     <ClCompile Include="tvdb\TVDBHandler.cpp" />
     <QtRcc Include="QAnime3.qrc" />
     <QtUic Include="QAnime3.ui" />
@@ -130,6 +131,7 @@
     <ClInclude Include="meta\Season.h" />
     <ClInclude Include="meta\Series.h" />
     <ClInclude Include="qbt\QBTHandler.h" />
+    <ClInclude Include="storage\StorageHandler.h" />
     <ClInclude Include="tvdb\TVDBHandler.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
