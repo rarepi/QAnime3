@@ -61,6 +61,9 @@
     <ClCompile Include="qbt\QBTHandler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="storage\StorageHandler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="SeriesSelection.h">
@@ -89,6 +92,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="meta\Series.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="storage\StorageHandler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

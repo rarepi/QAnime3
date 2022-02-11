@@ -1,7 +1,38 @@
 #include <string>
+#include <sstream>
 #include <sqlite3.h>
 
 #include "../meta/Series.h"
+
+class SqlItem {
+	public:
+		SqlItem(std::string name, std::string value);
+		std::string name;
+		std::string value;
+	private:
+};
+
+// thanks microsoft
+#pragma push_macro("DELETE")
+#undef DELETE
+enum class SQL_COMMAND {
+	CREATE_TABLE, 
+	INSERT,
+	DELETE
+};
+#pragma pop_macro("DELETE")
+
+class SqlStatement {
+	public:
+		SqlStatement(SQL_COMMAND command, std::string argument);
+		void addItem(std::string name, std::string value);
+		void addItem(std::string name, int value);
+		std::string buildSql();
+	private:
+		SQL_COMMAND type;
+		std::stringstream statement;
+		std::vector<SqlItem> items;
+};
 
 class StorageHandler {
 	public:

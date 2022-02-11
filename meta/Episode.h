@@ -14,14 +14,14 @@ class Episode : public Metadata {
 		void setRuntime(const unsigned int ms);
 		void setFirstAiredDate(const std::string firstAiredDate);
 		void setFirstAiredBroadcaster(const std::string firstAiredBroadcaster);
-		void setUrlTVDB(const std::string TVDBUrl);
+		void setTVDBUrl(const std::string TVDBUrl);
 
 		const Season* getSeason() const;
 		const int getAbsolute() const;
 		const int getRuntime() const;
 		const std::string getFirstAiredDate() const;
 		const std::string getFirstAiredBroadcaster() const;
-		const std::string getUrlTVDB() const;
+		const std::string getTVDBUrl() const;
 
 	private:
 		Season* season;
