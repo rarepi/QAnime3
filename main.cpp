@@ -49,6 +49,8 @@ int main(int argc, char *argv[]) {
     storage->addSeason(*season);
 
     storage->updateSeries(*series);
+    storage->selectSeriesById(series->getId());
+
     storage->deleteSeries(*series);
 
     std::string test = qbt->getAppVersion();

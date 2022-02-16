@@ -4,9 +4,10 @@
 class Metadata {
 	public:
 		void setId(const int &id);
+		void setId(const std::string &id);
 		const int& getId() const;
 
-		void setName(std::string& name);
+		void setName(const std::string& name);
 		const std::string& getName() const;
 
 	protected:

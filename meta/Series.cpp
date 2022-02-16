@@ -1,5 +1,8 @@
 #include "Series.h"
 
+Series::Series() {
+}
+
 Series::Series(const std::string& TVDBName) {
 	this->setTVDBName(TVDBName);
 }

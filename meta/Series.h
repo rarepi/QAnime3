@@ -6,6 +6,7 @@
 
 class Series : public Metadata {
 	public:
+		Series();
 		Series(const std::string& TVDBName);
 		Series::~Series();
 		void addSeason(Season* season);

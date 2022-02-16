@@ -7,14 +7,16 @@ class Season;
 class Episode : public Metadata {
 	public:
 		Episode(Season& season, int id);
-		Episode(Season& season, std::string id);
+		Episode(Season& season, std::string& id);
 
 		void setSeason(Season& season);
 		void setAbsolute(const int absolute);
+		void setAbsolute(const std::string& absolute);
 		void setRuntime(const unsigned int ms);
-		void setFirstAiredDate(const std::string firstAiredDate);
-		void setFirstAiredBroadcaster(const std::string firstAiredBroadcaster);
-		void setTVDBUrl(const std::string TVDBUrl);
+		void setRuntime(const std::string& ms);
+		void setFirstAiredDate(const std::string& firstAiredDate);
+		void setFirstAiredBroadcaster(const std::string& firstAiredBroadcaster);
+		void setTVDBUrl(const std::string& TVDBUrl);
 
 		const Season* getSeason() const;
 		const int getAbsolute() const;

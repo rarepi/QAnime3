@@ -4,11 +4,15 @@ void Metadata::setId(const int& id) {
 	this->id = id;
 }
 
+void Metadata::setId(const std::string& id) {
+	this->setId(std::stoi(id));
+}
+
 const int& Metadata::getId() const {
 	return this->id;
 }
 
-void Metadata::setName(std::string& name) {
+void Metadata::setName(const std::string& name) {
 	this->name = name;
 }
 

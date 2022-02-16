@@ -7,7 +7,7 @@ Episode::Episode(Season& season, int id) {
 	this->setAbsolute(0);
 	this->setRuntime(0);
 }
-Episode::Episode(Season& season, std::string id)
+Episode::Episode(Season& season, std::string& id)
 	: Episode(season, std::stoi(id)) {}
 
 void Episode::setSeason(Season& season) {
@@ -17,16 +17,22 @@ void Episode::setSeason(Season& season) {
 void Episode::setAbsolute(int absolute) {
 	this->absolute = absolute;
 }
+void Episode::setAbsolute(const std::string& absolute) {
+	this->setAbsolute(std::stoi(absolute));
+}
 void Episode::setRuntime(unsigned int ms) {
 	this->runtime = runtime;
 }
-void Episode::setFirstAiredDate(std::string firstAiredDate) {
+void Episode::setRuntime(const std::string& ms) {
+	this->setRuntime(std::stoi(ms));
+}
+void Episode::setFirstAiredDate(const std::string& firstAiredDate) {
 	this->firstAiredDate = firstAiredDate;
 }
-void Episode::setFirstAiredBroadcaster(std::string firstAiredBroadcaster) {
+void Episode::setFirstAiredBroadcaster(const std::string& firstAiredBroadcaster) {
 	this->firstAiredBroadcaster = firstAiredBroadcaster;
 }
-void Episode::setTVDBUrl(std::string TVDBUrl) {
+void Episode::setTVDBUrl(const std::string& TVDBUrl) {
 	this->TVDBUrl = TVDBUrl;
 }
 
