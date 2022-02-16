@@ -1,26 +1,26 @@
 #include "Episode.h"
 #include "Season.h"
 
-Episode::Episode(Season& season, int id) {
+Episode::Episode(Season& season, const int id) {
 	this->setSeason(season);
 	this->setId(id);
 	this->setAbsolute(0);
 	this->setRuntime(0);
 }
-Episode::Episode(Season& season, std::string& id)
+Episode::Episode(Season& season, const std::string& id)
 	: Episode(season, std::stoi(id)) {}
 
 void Episode::setSeason(Season& season) {
 	season.addEpisode(this);
 	this->season = &season;
 }
-void Episode::setAbsolute(int absolute) {
+void Episode::setAbsolute(const int absolute) {
 	this->absolute = absolute;
 }
 void Episode::setAbsolute(const std::string& absolute) {
 	this->setAbsolute(std::stoi(absolute));
 }
-void Episode::setRuntime(unsigned int ms) {
+void Episode::setRuntime(const unsigned int ms) {
 	this->runtime = runtime;
 }
 void Episode::setRuntime(const std::string& ms) {

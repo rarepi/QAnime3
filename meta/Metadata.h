@@ -3,9 +3,9 @@
 
 class Metadata {
 	public:
-		void setId(const int &id);
-		void setId(const std::string &id);
-		const int& getId() const;
+		void setId(int id);
+		void setId(const std::string& id);
+		const int getId() const;
 
 		void setName(const std::string& name);
 		const std::string& getName() const;

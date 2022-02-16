@@ -1,6 +1,6 @@
 #include "Metadata.h"
 
-void Metadata::setId(const int& id) {
+void Metadata::setId(int id) {
 	this->id = id;
 }
 
@@ -8,7 +8,7 @@ void Metadata::setId(const std::string& id) {
 	this->setId(std::stoi(id));
 }
 
-const int& Metadata::getId() const {
+const int Metadata::getId() const {
 	return this->id;
 }
 

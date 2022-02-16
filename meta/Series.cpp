@@ -26,32 +26,26 @@ const std::string& Series::getTVDBName() const {
 	return this->TVDBName;
 }
 
-void Series::setAirRhythm(const std::string& airRhythm)
-{
+void Series::setAirRhythm(const std::string& airRhythm) {
 	this->airRhythm = airRhythm;
 }
 
-const std::string& Series::getAirRhythm() const
-{
+const std::string& Series::getAirRhythm() const {
 	return this->airRhythm;
 }
 
-void Series::setFirstAiredDate(const std::string& firstAiredDate)
-{
+void Series::setFirstAiredDate(const std::string& firstAiredDate) {
 	this->firstAiredDate = firstAiredDate;
 }
 
-const std::string& Series::getFirstAiredDate() const
-{
+const std::string& Series::getFirstAiredDate() const {
 	return this->firstAiredDate;
 }
 
-void Series::setFirstAiredBroadcaster(const std::string& firstAiredBroadcaster)
-{
+void Series::setFirstAiredBroadcaster(const std::string& firstAiredBroadcaster) {
 	this->firstAiredBroadcaster = firstAiredBroadcaster;
 }
 
-const std::string& Series::getFirstAiredBroadcaster() const
-{
+const std::string& Series::getFirstAiredBroadcaster() const {
 	return this->firstAiredBroadcaster;
 }

@@ -1,7 +1,7 @@
 #include "Season.h"
 #include "Series.h"
 
-Season::Season(Series& series, int id) {
+Season::Season(Series& series, const int id) {
 	this->setId(id);
 	this->setSeries(series);
 }

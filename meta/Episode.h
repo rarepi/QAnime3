@@ -6,8 +6,8 @@ class Season;
 
 class Episode : public Metadata {
 	public:
-		Episode(Season& season, int id);
-		Episode(Season& season, std::string& id);
+		Episode(Season& season, const int id);
+		Episode(Season& season, const std::string& id);
 
 		void setSeason(Season& season);
 		void setAbsolute(const int absolute);
