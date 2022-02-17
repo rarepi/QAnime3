@@ -258,7 +258,7 @@ void StorageHandler::setupTables() {
     SqlStatement statementEpisode(SQL_COMMAND::CREATE_TABLE, "Episode");
     statementEpisode.addItem("id", "INT NOT NULL");
     statementEpisode.addItem("season_id", "INT NOT NULL");
-    statementSeason.addItem("series_id", "INT NOT NULL");
+    statementEpisode.addItem("series_id", "INT NOT NULL");
     statementEpisode.addItem("name", "TEXT");
     statementEpisode.addItem("absolute", "INT");
     statementEpisode.addItem("runtime", "INT");
