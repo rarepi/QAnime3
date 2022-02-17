@@ -46,24 +46,29 @@ class StorageHandler {
 		// returns the current TVDBHandler instance
 		static StorageHandler* getInstance();
 
-		void addSeries(Series& series);
-		void updateSeries(Series& series);
-		void deleteSeries(Series& series);
-		void selectSeriesById(int id);
+		std::shared_ptr<Series> addSeries(const Series& series);
+		std::shared_ptr<Series> updateSeries(const Series& series);
+		void deleteSeries(const Series& series);
+		std::shared_ptr<Series> getSeriesById(int id);
 
-		void addSeason(Season& season);
-		void updateSeason(Season& season);
-		void deleteSeason(Season& season);
-		void addEpisode(Episode& episode);
-		void updateEpisode(Episode& episode);
-		void deleteEpisode(Episode& episode);
+		std::shared_ptr<Season> addSeason(const Season& season);
+		std::shared_ptr<Season> updateSeason(const Season& season);
+		void deleteSeason(const Season& season);
 
-		void map(const std::map<std::string, std::string>& from, Series& to);
-		void map(const Series& from, std::map<std::string, std::string>& to);
-		void map(const std::map<std::string, std::string>& from, Season& to);
-		void map(const Season& from, std::map<std::string, std::string>& to);
-		void map(const std::map<std::string, std::string>& from, Episode& to);
-		void map(const Episode& from, std::map<std::string, std::string>& to);
+		std::shared_ptr<Episode> addEpisode(const Episode& episode);
+		std::shared_ptr<Episode> updateEpisode(const Episode& episode);
+		void deleteEpisode(const Episode& episode);
+
+		void cache(std::shared_ptr<Series> seriesPtr);
+		void cache(std::shared_ptr<Season> seasonPtr);
+		void cache(std::shared_ptr<Episode> episodePtr);
+
+		template <class T>
+		auto map(const std::map<std::string, std::string>& from);
+		std::map<std::string, std::string> map(const Series& from);
+		std::map<std::string, std::string> map(const Season& from);
+		std::map<std::string, std::string> map(const Episode& from);
+
 
 	private:
 		StorageHandler(const std::string& filename);	// private constructor for singleton
@@ -75,4 +80,8 @@ class StorageHandler {
 
 		std::string filename;
 		sqlite3* connection;
+
+		std::map<int, std::shared_ptr<Series>> seriesCache;
+		std::map<int, std::shared_ptr<Season>> seasonCache;
+		std::map<int, std::shared_ptr<Episode>> episodeCache;
 };

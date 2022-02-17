@@ -8,6 +8,7 @@ class Series;
 
 class Season : public Metadata {
 	public:
+		Season();
 		Season(Series& series, int id);
 		~Season();
 

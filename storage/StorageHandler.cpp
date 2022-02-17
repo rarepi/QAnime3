@@ -166,62 +166,90 @@ StorageHandler* StorageHandler::getInstance() {
     return instance;
 }
 
-// maps sql results to Series object. does *not* correctly reverse a object-to-map mapping
-void StorageHandler::map(const std::map<std::string, std::string>& from, Series& to) {
-    to.setId(from.at("id"));
-    to.setName(from.at("name"));
-    to.setAirRhythm(from.at("air_rhythm"));
-    to.setFirstAiredDate(from.at("first_aired_date"));
-    to.setFirstAiredBroadcaster(from.at("first_aired_broadcaster"));
+void StorageHandler::cache(std::shared_ptr<Series> seriesPtr) {
+    this->seriesCache[seriesPtr->getId()] = seriesPtr;
 }
 
-// maps Series object to map of sql-formatted strings.
-void StorageHandler::map(const Series& from, std::map<std::string, std::string>& to) {
-    to["id"] = from.getId();
-    to["name"] = "'" + from.getName() + "'";
-    to["air_rhythm"] = "'" + from.getAirRhythm() + "'";
-    to["first_aired_date"] = "'" + from.getFirstAiredDate() + "'";
-    to["first_aired_broadcaster"] = "'" + from.getFirstAiredBroadcaster() + "'";
+void StorageHandler::cache(std::shared_ptr<Season> seasonPtr) {
+    this->seasonCache[seasonPtr->getId()] = seasonPtr;
+}
+
+void StorageHandler::cache(std::shared_ptr<Episode> episodePtr) {
+    this->episodeCache[episodePtr->getId()] = episodePtr;
+}
+
+// maps sql results to Series object. does *not* correctly reverse a object-to-map mapping
+template <>
+auto StorageHandler::map<Series>(const std::map<std::string, std::string>& from) {
+    auto ptr = std::make_shared<Series>();
+    ptr->setId(from.at("id"));
+    ptr->setName(from.at("name"));
+    ptr->setAirRhythm(from.at("air_rhythm"));
+    ptr->setFirstAiredDate(from.at("first_aired_date"));
+    ptr->setFirstAiredBroadcaster(from.at("first_aired_broadcaster"));
+    return ptr;
 }
 
 // maps sql results to Season object. does *not* correctly reverse a object-to-map mapping
-void StorageHandler::map(const std::map<std::string, std::string>& from, Season& to) {
-    to.setId(from.at("id"));
-    //to.setSeries(from.at("series_id")); // todo: handle this
-    to.setName(from.at("name"));
+template <>
+auto StorageHandler::map<Season>(const std::map<std::string, std::string>& from) {
+    auto ptr = std::make_shared<Season>();
+    ptr->setId(from.at("id"));
+    //ptr->setSeries(from.at("series_id")); // todo: handle this
+    ptr->setName(from.at("name"));
+    return ptr;
+}
+
+
+// maps sql results to Episode object. does *not* correctly reverse a object-to-map mapping
+template <>
+auto StorageHandler::map<Episode>(const std::map<std::string, std::string>& from) {
+    auto ptr = std::make_shared<Episode>();
+    ptr->setId(from.at("id"));
+    //ptr->setSeason(from.at("season_id"); // todo: handle this
+    //ptr->getSeason().setSeries(from.at("series_id"); // todo: handle this
+    ptr->setName(from.at("name"));
+    ptr->setAbsolute(from.at("absolute"));
+    ptr->setRuntime(from.at("runtime"));
+    ptr->setFirstAiredDate(from.at("first_aired_date"));
+    ptr->setFirstAiredBroadcaster(from.at("first_aired_broadcaster"));
+    ptr->setTVDBUrl(from.at("tvdb_url"));
+    return ptr;
+}
+
+// maps Series object to map of sql-formatted strings.
+std::map<std::string, std::string> StorageHandler::map(const Series& from) {
+    std::map<std::string, std::string> map;
+    map["id"] = from.getId();
+    map["name"] = "'" + from.getName() + "'";
+    map["air_rhythm"] = "'" + from.getAirRhythm() + "'";
+    map["first_aired_date"] = "'" + from.getFirstAiredDate() + "'";
+    map["first_aired_broadcaster"] = "'" + from.getFirstAiredBroadcaster() + "'";
+    return map;
 }
 
 // maps Season object to map of sql-formatted strings.
-void StorageHandler::map(const Season& from, std::map<std::string, std::string>& to) {
-    to["id"] = from.getId();
-    to["series_id"] = from.getSeries()->getId();
-    to["name"] = "'" + from.getName() + "'";
-}
-
-// maps sql results to Episode object. does *not* correctly reverse a object-to-map mapping
-void StorageHandler::map(const std::map<std::string, std::string>& from, Episode& to) {
-    to.setId(from.at("id"));
-    //to.setSeason(from.at("season_id"); // todo: handle this
-    //to.getSeason().setSeries(from.at("series_id"); // todo: handle this
-    to.setName(from.at("name"));
-    to.setAbsolute(from.at("absolute"));
-    to.setRuntime(from.at("runtime"));
-    to.setFirstAiredDate(from.at("first_aired_date"));
-    to.setFirstAiredBroadcaster(from.at("first_aired_broadcaster"));
-    to.setTVDBUrl(from.at("tvdb_url"));
+std::map<std::string, std::string> StorageHandler::map(const Season& from) {
+    std::map<std::string, std::string> map;
+    map["id"] = from.getId();
+    map["series_id"] = from.getSeries()->getId();
+    map["name"] = "'" + from.getName() + "'";
+    return map;
 }
 
 // maps Episode object to map of sql-formatted strings.
-void StorageHandler::map(const Episode& from, std::map<std::string, std::string>& to) {
-    to["id"] = from.getId();
-    to["season_id"] = from.getSeason()->getId();
-    to["series_id"] = from.getSeason()->getSeries()->getId();
-    to["name"] = "'" + from.getName() + "'";
-    to["absolute"] = from.getAbsolute();
-    to["runtime"] = from.getRuntime();
-    to["first_aired_date"] = "'" + from.getFirstAiredDate() + "'";
-    to["first_aired_broadcaster"] = "'" + from.getFirstAiredBroadcaster() + "'";
-    to["tvdb_url"] = "'" + from.getTVDBUrl() + "'";
+std::map<std::string, std::string> StorageHandler::map(const Episode& from) {
+    std::map<std::string, std::string> map;
+    map["id"] = from.getId();
+    map["season_id"] = from.getSeason()->getId();
+    map["series_id"] = from.getSeason()->getSeries()->getId();
+    map["name"] = "'" + from.getName() + "'";
+    map["absolute"] = from.getAbsolute();
+    map["runtime"] = from.getRuntime();
+    map["first_aired_date"] = "'" + from.getFirstAiredDate() + "'";
+    map["first_aired_broadcaster"] = "'" + from.getFirstAiredBroadcaster() + "'";
+    map["tvdb_url"] = "'" + from.getTVDBUrl() + "'";
+    return map;
 }
 
 int StorageHandler::open() {
@@ -275,10 +303,9 @@ void StorageHandler::setupTables() {
     return;
 }
 
-void StorageHandler::addSeries(Series& series) {
+std::shared_ptr<Series> StorageHandler::addSeries(const Series& series) {
     // map object attributes
-    std::map<std::string, std::string> items;
-    this->map(series, items);
+    std::map<std::string, std::string> items = this->map(series);
 
     // create sql statement
     SqlStatement statement(SQL_COMMAND::INSERT, "Series");
@@ -290,12 +317,16 @@ void StorageHandler::addSeries(Series& series) {
     this->open();
     int rc = sqlite3_exec(this->connection, sql.c_str(), 0, 0, &err);
     this->close();
+
+    // put data into cache and return pointer to cached data
+    auto seriesPtr = std::make_shared<Series>(series);
+    cache(seriesPtr);
+    return seriesPtr;
 }
 
-void StorageHandler::updateSeries(Series& series) {
+std::shared_ptr<Series> StorageHandler::updateSeries(const Series& series) {
     // map object attributes
-    std::map<std::string, std::string> items;
-    this->map(series, items);
+    std::map<std::string, std::string> items = this->map(series);
 
     // create sql statement
     SqlStatement statement(SQL_COMMAND::UPDATE, "Series");
@@ -308,9 +339,14 @@ void StorageHandler::updateSeries(Series& series) {
     this->open();
     int rc = sqlite3_exec(this->connection, sql.c_str(), 0, 0, &err);
     this->close();
+
+    // put data into cache and return pointer to cached data
+    auto seriesPtr = std::make_shared<Series>(series);
+    cache(seriesPtr);
+    return seriesPtr;
 }
 
-void StorageHandler::deleteSeries(Series& series) {
+void StorageHandler::deleteSeries(const Series& series) {
     // create sql statement
     SqlStatement statement(SQL_COMMAND::DELETE, "Series");
     statement.addCondition("id", series.getId());
@@ -323,7 +359,10 @@ void StorageHandler::deleteSeries(Series& series) {
     this->close();
 }
 
-void StorageHandler::selectSeriesById(int id) {
+std::shared_ptr<Series> StorageHandler::getSeriesById(int id) {
+    if(this->seriesCache.count(id))
+        return this->seriesCache[id];
+
     // create sql statement
     SqlStatement statement(SQL_COMMAND::SELECT, "Series");
     statement.addCondition("id", id);
@@ -344,17 +383,16 @@ void StorageHandler::selectSeriesById(int id) {
 
     // map results to object
     std::map<std::string, std::string> result = results.at(0);
-    Series series;
-    this->map(result, series);
-    
-    // ... TODO
 
+    // put data into cache and return pointer to cached data
+    auto seriesPtr = this->map<Series>(result);
+    cache(seriesPtr);
+    return seriesPtr;
 }
 
-void StorageHandler::addSeason(Season& season) {
+std::shared_ptr<Season> StorageHandler::addSeason(const Season& season) {
     // map object attributes
-    std::map<std::string, std::string> items;
-    this->map(season, items);
+    std::map<std::string, std::string> items = this->map(season);
 
     // create sql statement
     SqlStatement statement(SQL_COMMAND::INSERT, "Season");
@@ -366,12 +404,16 @@ void StorageHandler::addSeason(Season& season) {
     char* err;
     int rc = sqlite3_exec(this->connection, sql.c_str(), 0, 0, &err);
     this->close();
+
+    // put data into cache and return pointer to cached data
+    auto seasonPtr = std::make_shared<Season>(season);
+    cache(seasonPtr);
+    return seasonPtr;
 }
 
-void StorageHandler::updateSeason(Season& season) {    
+std::shared_ptr<Season> StorageHandler::updateSeason(const Season& season) {    
     // map object attributes
-    std::map<std::string, std::string> items;
-    this->map(season, items);
+    std::map<std::string, std::string> items = this->map(season);
 
     // create sql statement
     SqlStatement statement(SQL_COMMAND::UPDATE, "Season");
@@ -385,9 +427,14 @@ void StorageHandler::updateSeason(Season& season) {
     char* err;
     int rc = sqlite3_exec(this->connection, sql.c_str(), 0, 0, &err);
     this->close();
+
+    // put data into cache and return pointer to cached data
+    auto seasonPtr = std::make_shared<Season>(season);
+    cache(seasonPtr);
+    return seasonPtr;
 }
 
-void StorageHandler::deleteSeason(Season& season) {
+void StorageHandler::deleteSeason(const Season& season) {
     // create sql statement
     SqlStatement statement(SQL_COMMAND::DELETE, "Season");
     statement.addCondition("id", season.getId());
@@ -401,10 +448,9 @@ void StorageHandler::deleteSeason(Season& season) {
     this->close();
 }
 
-void StorageHandler::addEpisode(Episode& episode) {
+std::shared_ptr<Episode> StorageHandler::addEpisode(const Episode& episode) {
     // map object attributes
-    std::map<std::string, std::string> items;
-    this->map(episode, items);
+    std::map<std::string, std::string> items = this->map(episode);
 
     // create sql statement
     SqlStatement statement(SQL_COMMAND::INSERT, "Episode");
@@ -416,12 +462,16 @@ void StorageHandler::addEpisode(Episode& episode) {
     char* err;
     sqlite3_exec(this->connection, sql.c_str(), 0, 0, &err);
     this->close();
+
+    // put data into cache and return pointer to cached data
+    auto episodePtr = std::make_shared<Episode>(episode);
+    cache(episodePtr);
+    return episodePtr;
 }
 
-void StorageHandler::updateEpisode(Episode& episode) {
+std::shared_ptr<Episode> StorageHandler::updateEpisode(const Episode& episode) {
     // map object attributes
-    std::map<std::string, std::string> items;
-    this->map(episode, items);
+    std::map<std::string, std::string> items = this->map(episode);
 
     // create sql statement
     SqlStatement statement(SQL_COMMAND::UPDATE, "Episode");
@@ -436,9 +486,14 @@ void StorageHandler::updateEpisode(Episode& episode) {
     char* err;
     sqlite3_exec(this->connection, sql.c_str(), 0, 0, &err);
     this->close();
+
+    // put data into cache and return pointer to cached data
+    auto episodePtr = std::make_shared<Episode>(episode);
+    cache(episodePtr);
+    return episodePtr;
 }
 
-void StorageHandler::deleteEpisode(Episode& episode) {
+void StorageHandler::deleteEpisode(const Episode& episode) {
     // create sql statement
     SqlStatement statement(SQL_COMMAND::DELETE, "Episode");
     statement.addCondition("id", episode.getId());

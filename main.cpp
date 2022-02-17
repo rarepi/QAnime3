@@ -45,11 +45,11 @@ int main(int argc, char *argv[]) {
     Series* series = tvdb->getSeriesData("one-piece");
     Season* season = tvdb->getSeasonData(*series, 21);
 
-    storage->addSeries(*series);
-    storage->addSeason(*season);
+    auto seriesPtr = storage->addSeries(*series);
+    auto seasonPtr = storage->addSeason(*season);
 
-    storage->updateSeries(*series);
-    storage->selectSeriesById(series->getId());
+    seriesPtr = storage->updateSeries(*series);
+    seriesPtr = storage->getSeriesById(series->getId());
 
     storage->deleteSeries(*series);
 
