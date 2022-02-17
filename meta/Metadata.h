@@ -11,6 +11,6 @@ class Metadata {
 		const std::string& getName() const;
 
 	protected:
-		int id;
+		int id = -1;
 		std::string name;
 };

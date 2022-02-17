@@ -187,39 +187,41 @@ void StorageHandler::map(const Series& from, std::map<std::string, std::string>&
 // maps sql results to Season object. does *not* correctly reverse a object-to-map mapping
 void StorageHandler::map(const std::map<std::string, std::string>& from, Season& to) {
     to.setId(from.at("id"));
+    //to.setSeries(from.at("series_id")); // todo: handle this
     to.setName(from.at("name"));
-    //to.setSeries(); // todo
 }
 
 // maps Season object to map of sql-formatted strings.
 void StorageHandler::map(const Season& from, std::map<std::string, std::string>& to) {
     to["id"] = from.getId();
-    to["name"] = "'" + from.getName() + "'";
     to["series_id"] = from.getSeries()->getId();
+    to["name"] = "'" + from.getName() + "'";
 }
 
 // maps sql results to Episode object. does *not* correctly reverse a object-to-map mapping
 void StorageHandler::map(const std::map<std::string, std::string>& from, Episode& to) {
     to.setId(from.at("id"));
+    //to.setSeason(from.at("season_id"); // todo: handle this
+    //to.getSeason().setSeries(from.at("series_id"); // todo: handle this
     to.setName(from.at("name"));
     to.setAbsolute(from.at("absolute"));
     to.setRuntime(from.at("runtime"));
     to.setFirstAiredDate(from.at("first_aired_date"));
     to.setFirstAiredBroadcaster(from.at("first_aired_broadcaster"));
     to.setTVDBUrl(from.at("tvdb_url"));
-    //to.setSeason(); // todo
 }
 
 // maps Episode object to map of sql-formatted strings.
 void StorageHandler::map(const Episode& from, std::map<std::string, std::string>& to) {
     to["id"] = from.getId();
+    to["season_id"] = from.getSeason()->getId();
+    to["series_id"] = from.getSeason()->getSeries()->getId();
     to["name"] = "'" + from.getName() + "'";
     to["absolute"] = from.getAbsolute();
     to["runtime"] = from.getRuntime();
     to["first_aired_date"] = "'" + from.getFirstAiredDate() + "'";
     to["first_aired_broadcaster"] = "'" + from.getFirstAiredBroadcaster() + "'";
     to["tvdb_url"] = "'" + from.getTVDBUrl() + "'";
-    to["season_id"] = from.getSeason()->getId();
 }
 
 int StorageHandler::open() {
@@ -246,8 +248,8 @@ void StorageHandler::setupTables() {
 
     SqlStatement statementSeason(SQL_COMMAND::CREATE_TABLE, "Season");
     statementSeason.addItem("id", "INT NOT NULL");
-    statementSeason.addItem("name", "TEXT");
     statementSeason.addItem("series_id", "INT NOT NULL");
+    statementSeason.addItem("name", "TEXT");
     statementSeason.addItem("FOREIGN KEY (series_id) REFERENCES Series(id)", "ON DELETE CASCADE ON UPDATE CASCADE");
     statementSeason.addItem("PRIMARY KEY (id, series_id)", "");
     sql = statementSeason.buildSql();
@@ -255,15 +257,17 @@ void StorageHandler::setupTables() {
 
     SqlStatement statementEpisode(SQL_COMMAND::CREATE_TABLE, "Episode");
     statementEpisode.addItem("id", "INT NOT NULL");
+    statementEpisode.addItem("season_id", "INT NOT NULL");
+    statementSeason.addItem("series_id", "INT NOT NULL");
     statementEpisode.addItem("name", "TEXT");
     statementEpisode.addItem("absolute", "INT");
     statementEpisode.addItem("runtime", "INT");
     statementEpisode.addItem("first_aired_date", "TEXT");
     statementEpisode.addItem("first_aired_broadcaster", "TEXT");
     statementEpisode.addItem("tvdb_url", "TEXT");
-    statementEpisode.addItem("season_id", "INT NOT NULL");
     statementEpisode.addItem("FOREIGN KEY (season_id) REFERENCES Season (id)", "ON DELETE CASCADE ON UPDATE CASCADE");
-    statementEpisode.addItem("PRIMARY KEY (id, season_id)", "");    // FIXME: THIS IS NOT UNIQUE!
+    statementEpisode.addItem("FOREIGN KEY (series_id) REFERENCES Series (id)", "ON DELETE CASCADE ON UPDATE CASCADE");
+    statementEpisode.addItem("PRIMARY KEY (id, season_id, series_id)", "");
     sql = statementEpisode.buildSql();
     sqlite3_exec(this->connection, sql.c_str(), 0, 0, 0);
 
@@ -424,6 +428,7 @@ void StorageHandler::updateEpisode(Episode& episode) {
     statement.addItems(items);
     statement.addCondition("id", episode.getId());
     statement.addCondition("season_id", episode.getSeason()->getId());
+    statement.addCondition("series_id", episode.getSeason()->getSeries()->getId());
     std::string sql = statement.buildSql();
 
     // execute sql statement
@@ -438,6 +443,7 @@ void StorageHandler::deleteEpisode(Episode& episode) {
     SqlStatement statement(SQL_COMMAND::DELETE, "Episode");
     statement.addCondition("id", episode.getId());
     statement.addCondition("season_id", episode.getSeason()->getId());
+    statement.addCondition("series_id", episode.getSeason()->getSeries()->getId());
     std::string sql = statement.buildSql();
 
     // execute sql statement
