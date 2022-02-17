@@ -49,19 +49,22 @@ class StorageHandler {
 		std::shared_ptr<Series> addSeries(const Series& series);
 		std::shared_ptr<Series> updateSeries(const Series& series);
 		void deleteSeries(const Series& series);
-		std::shared_ptr<Series> getSeriesById(int id);
+		std::map<int, Series> getSeriesAll();
+		std::shared_ptr<Series> getSeriesByPK(int id);
 
 		std::shared_ptr<Season> addSeason(const Season& season);
 		std::shared_ptr<Season> updateSeason(const Season& season);
 		void deleteSeason(const Season& season);
+		std::shared_ptr<Season> getSeasonByPK(int series_id, int season_id);
 
 		std::shared_ptr<Episode> addEpisode(const Episode& episode);
 		std::shared_ptr<Episode> updateEpisode(const Episode& episode);
 		void deleteEpisode(const Episode& episode);
+		Episode& getEpisodeByPK(int series_id, int season_id, int episode_id);
 
-		void cache(std::shared_ptr<Series> seriesPtr);
-		void cache(std::shared_ptr<Season> seasonPtr);
-		void cache(std::shared_ptr<Episode> episodePtr);
+		std::shared_ptr<Series> cache(const Series& series);
+		std::shared_ptr<Season> cache(const Season& season);
+		std::shared_ptr<Episode> cache(const Episode& episode);
 
 		template <class T>
 		auto map(const std::map<std::string, std::string>& from);
@@ -81,7 +84,7 @@ class StorageHandler {
 		std::string filename;
 		sqlite3* connection;
 
-		std::map<int, std::shared_ptr<Series>> seriesCache;
-		std::map<int, std::shared_ptr<Season>> seasonCache;
-		std::map<int, std::shared_ptr<Episode>> episodeCache;
+		std::map<int, Series> seriesCache;
+		std::map<std::tuple<int, int>, Season> seasonCache;
+		std::map<std::tuple<int, int, int>, Episode> episodeCache;
 };

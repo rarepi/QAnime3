@@ -7,14 +7,11 @@ Series::Series(const std::string& TVDBName) {
 	this->setTVDBName(TVDBName);
 }
 
-void Series::addSeason(Season* season) {
-	this->seasons.push_back(season);
+void Series::addSeason(const Season& season) {
+	this->seasons.push_back(std::make_shared<Season>(season));
 }
 
 Series::~Series() {
-	for (Season* season : this->seasons) {
-		delete season;
-	}
 }
 
 void Series::setTVDBName(const std::string& name) {

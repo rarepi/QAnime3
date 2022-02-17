@@ -42,14 +42,14 @@ int main(int argc, char *argv[]) {
         settings["storage_filename"].asString()
     );
 
-    Series* series = tvdb->getSeriesData("one-piece");
-    Season* season = tvdb->getSeasonData(*series, 21);
+    auto series = tvdb->getSeriesData("one-piece");
+    auto season = tvdb->getSeasonData(*series, 21);
 
     auto seriesPtr = storage->addSeries(*series);
     auto seasonPtr = storage->addSeason(*season);
 
     seriesPtr = storage->updateSeries(*series);
-    seriesPtr = storage->getSeriesById(series->getId());
+    seriesPtr = storage->getSeriesByPK(series->getId());
 
     storage->deleteSeries(*series);
 

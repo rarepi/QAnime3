@@ -1,18 +1,21 @@
 #include "Episode.h"
 #include "Season.h"
 
-Episode::Episode(Season& season, const int id) {
+Episode::Episode() {
+}
+
+Episode::Episode(const Season& season, const int id) {
 	this->setSeason(season);
 	this->setId(id);
 	this->setAbsolute(0);
 	this->setRuntime(0);
 }
-Episode::Episode(Season& season, const std::string& id)
+Episode::Episode(const Season& season, const std::string& id)
 	: Episode(season, std::stoi(id)) {}
 
-void Episode::setSeason(Season& season) {
-	season.addEpisode(this);
-	this->season = &season;
+void Episode::setSeason(const Season& season) {
+	this->season = std::make_shared<Season>(season);
+	this->getSeason()->addEpisode(*this);
 }
 void Episode::setAbsolute(const int absolute) {
 	this->absolute = absolute;
@@ -36,8 +39,8 @@ void Episode::setTVDBUrl(const std::string& TVDBUrl) {
 	this->TVDBUrl = TVDBUrl;
 }
 
-const Season* Episode::getSeason() const {
-	return this->season;
+const std::shared_ptr<Season> Episode::getSeason() const {
+	return this->season.lock();
 }
 const int Episode::getAbsolute() const {
 	return this->absolute;

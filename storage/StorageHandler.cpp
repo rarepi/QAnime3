@@ -166,16 +166,26 @@ StorageHandler* StorageHandler::getInstance() {
     return instance;
 }
 
-void StorageHandler::cache(std::shared_ptr<Series> seriesPtr) {
-    this->seriesCache[seriesPtr->getId()] = seriesPtr;
+std::shared_ptr<Series> StorageHandler::cache(const Series& series) {
+    int primaryKey = series.getId();
+    this->seriesCache[primaryKey] = series;
+    return std::make_shared<Series>(this->seriesCache[primaryKey]); // TODO: what happens to old pointers after replacing map values?
 }
 
-void StorageHandler::cache(std::shared_ptr<Season> seasonPtr) {
-    this->seasonCache[seasonPtr->getId()] = seasonPtr;
+std::shared_ptr<Season> StorageHandler::cache(const Season& season) {
+    std::tuple<int, int> primaryKey(season.getSeries()->getId(), season.getId());
+    this->seasonCache[primaryKey] = season;
+    return std::make_shared<Season>(this->seasonCache[primaryKey]);
 }
 
-void StorageHandler::cache(std::shared_ptr<Episode> episodePtr) {
-    this->episodeCache[episodePtr->getId()] = episodePtr;
+std::shared_ptr<Episode> StorageHandler::cache(const Episode& episode) {
+    std::tuple<int, int, int> primaryKey(
+        episode.getSeason()->getSeries()->getId(),
+        episode.getSeason()->getId(),
+        episode.getId()
+    );
+    this->episodeCache[primaryKey] = episode;
+    return std::make_shared<Episode>(this->episodeCache[primaryKey]);
 }
 
 // maps sql results to Series object. does *not* correctly reverse a object-to-map mapping
@@ -200,21 +210,24 @@ auto StorageHandler::map<Season>(const std::map<std::string, std::string>& from)
     return ptr;
 }
 
-
 // maps sql results to Episode object. does *not* correctly reverse a object-to-map mapping
 template <>
 auto StorageHandler::map<Episode>(const std::map<std::string, std::string>& from) {
-    auto ptr = std::make_shared<Episode>();
-    ptr->setId(from.at("id"));
-    //ptr->setSeason(from.at("season_id"); // todo: handle this
-    //ptr->getSeason().setSeries(from.at("series_id"); // todo: handle this
-    ptr->setName(from.at("name"));
-    ptr->setAbsolute(from.at("absolute"));
-    ptr->setRuntime(from.at("runtime"));
-    ptr->setFirstAiredDate(from.at("first_aired_date"));
-    ptr->setFirstAiredBroadcaster(from.at("first_aired_broadcaster"));
-    ptr->setTVDBUrl(from.at("tvdb_url"));
-    return ptr;
+    int series_id = std::stoi(from.at("series_id"));
+    int season_id = std::stoi(from.at("season_id"));
+    //auto series = this->getSeriesByPK(series_id);
+    auto season = this->getSeasonByPK(series_id, season_id);
+    Episode ep;
+    ep.setId(from.at("id"));
+    ep.setSeason(*season);
+    //ep.getSeason().setSeries(from.at("series_id"); // todo: handle this
+    ep.setName(from.at("name"));
+    ep.setAbsolute(from.at("absolute"));
+    ep.setRuntime(from.at("runtime"));
+    ep.setFirstAiredDate(from.at("first_aired_date"));
+    ep.setFirstAiredBroadcaster(from.at("first_aired_broadcaster"));
+    ep.setTVDBUrl(from.at("tvdb_url"));
+    return ep;
 }
 
 // maps Series object to map of sql-formatted strings.
@@ -320,7 +333,7 @@ std::shared_ptr<Series> StorageHandler::addSeries(const Series& series) {
 
     // put data into cache and return pointer to cached data
     auto seriesPtr = std::make_shared<Series>(series);
-    cache(seriesPtr);
+    seriesPtr = cache(*seriesPtr);
     return seriesPtr;
 }
 
@@ -342,7 +355,7 @@ std::shared_ptr<Series> StorageHandler::updateSeries(const Series& series) {
 
     // put data into cache and return pointer to cached data
     auto seriesPtr = std::make_shared<Series>(series);
-    cache(seriesPtr);
+    seriesPtr = cache(*seriesPtr);
     return seriesPtr;
 }
 
@@ -359,9 +372,34 @@ void StorageHandler::deleteSeries(const Series& series) {
     this->close();
 }
 
-std::shared_ptr<Series> StorageHandler::getSeriesById(int id) {
+std::map<int, Series> StorageHandler::getSeriesAll() {
+    // create sql statement
+    SqlStatement statement(SQL_COMMAND::SELECT, "Series");
+    std::string sql = statement.buildSql();
+
+    // execute sql statement
+    std::vector<std::map<std::string, std::string>> results;
+    this->open();
+    char* err;
+    int rc = sqlite3_exec(this->connection, sql.c_str(), callback, &results, &err);
+    this->close();
+
+    // exactly one result expected
+    if (results.size() == 0)
+        throw "No Series found!";
+
+    // map results to object
+    for(std::map<std::string, std::string>& result : results) {
+        auto seriesPtr = this->map<Series>(result);
+        cache(*seriesPtr);
+    }
+
+    return this->seriesCache;
+}
+
+std::shared_ptr<Series> StorageHandler::getSeriesByPK(int id) {
     if(this->seriesCache.count(id))
-        return this->seriesCache[id];
+        return std::make_shared<Series>(this->seriesCache[id]);
 
     // create sql statement
     SqlStatement statement(SQL_COMMAND::SELECT, "Series");
@@ -386,7 +424,7 @@ std::shared_ptr<Series> StorageHandler::getSeriesById(int id) {
 
     // put data into cache and return pointer to cached data
     auto seriesPtr = this->map<Series>(result);
-    cache(seriesPtr);
+    seriesPtr = cache(*seriesPtr);
     return seriesPtr;
 }
 
@@ -407,7 +445,7 @@ std::shared_ptr<Season> StorageHandler::addSeason(const Season& season) {
 
     // put data into cache and return pointer to cached data
     auto seasonPtr = std::make_shared<Season>(season);
-    cache(seasonPtr);
+    seasonPtr = cache(*seasonPtr);
     return seasonPtr;
 }
 
@@ -430,7 +468,7 @@ std::shared_ptr<Season> StorageHandler::updateSeason(const Season& season) {
 
     // put data into cache and return pointer to cached data
     auto seasonPtr = std::make_shared<Season>(season);
-    cache(seasonPtr);
+    seasonPtr = cache(*seasonPtr);
     return seasonPtr;
 }
 
@@ -446,6 +484,39 @@ void StorageHandler::deleteSeason(const Season& season) {
     char* err;
     int rc = sqlite3_exec(this->connection, sql.c_str(), 0, 0, &err);
     this->close();
+}
+
+std::shared_ptr<Season> StorageHandler::getSeasonByPK(int series_id, int season_id) {
+    std::tuple<int, int> pimaryKey(series_id, season_id);
+    if(this->seasonCache.count(pimaryKey))
+        return std::make_shared<Season>(this->seasonCache[pimaryKey]);
+
+    // create sql statement
+    SqlStatement statement(SQL_COMMAND::SELECT, "Season");
+    statement.addCondition("id", season_id);
+    statement.addCondition("series_id", series_id);
+    std::string sql = statement.buildSql();
+
+    // execute sql statement
+    std::vector<std::map<std::string, std::string>> results;
+    this->open();
+    char* err;
+    int rc = sqlite3_exec(this->connection, sql.c_str(), callback, &results, &err);
+    this->close();
+
+    // exactly one result expected
+    if (results.size() == 0)
+        throw "Season not found for this id!";
+    else if (results.size() > 1)
+        throw "Multiple Seasons found for this id!";
+
+    // map results to object
+    std::map<std::string, std::string> result = results.at(0);
+
+    // put data into cache and return pointer to cached data
+    auto seasonPtr = this->map<Season>(result);
+    seasonPtr = cache(*seasonPtr);
+    return seasonPtr;
 }
 
 std::shared_ptr<Episode> StorageHandler::addEpisode(const Episode& episode) {
@@ -465,7 +536,7 @@ std::shared_ptr<Episode> StorageHandler::addEpisode(const Episode& episode) {
 
     // put data into cache and return pointer to cached data
     auto episodePtr = std::make_shared<Episode>(episode);
-    cache(episodePtr);
+    episodePtr = cache(*episodePtr);
     return episodePtr;
 }
 
@@ -489,7 +560,7 @@ std::shared_ptr<Episode> StorageHandler::updateEpisode(const Episode& episode) {
 
     // put data into cache and return pointer to cached data
     auto episodePtr = std::make_shared<Episode>(episode);
-    cache(episodePtr);
+    episodePtr = cache(*episodePtr);
     return episodePtr;
 }
 

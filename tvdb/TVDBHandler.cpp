@@ -289,27 +289,27 @@ std::map<int, int> TVDBHandler::collectSeriesSeasons(const char* html, const std
     return dataCollection;
 }
 
-Season* TVDBHandler::getSeasonData(Series& series, int seasonNumber) {
+std::shared_ptr<Season> TVDBHandler::getSeasonData(Series& series, int seasonNumber) {
     std::string url = this->tvdb_url + "/" + series.getTVDBName() + "/seasons/official/" + std::to_string(seasonNumber);
     std::string html = this->getHtml(url);
-    Season* season = new Season(series, seasonNumber);
+    auto season = std::make_shared<Season>(series, seasonNumber);
     if (html.size() > 0) {
-        season = this->parseSeasonHtml(html.c_str(), season);
+        this->parseSeasonHtml(html.c_str(), season);
         return season;
     } else {
         return nullptr;
     }
 }
 
-Season* TVDBHandler::parseSeasonHtml(const char* html, Season* season) {
-    if (!html) return nullptr;
+void TVDBHandler::parseSeasonHtml(const char* html, std::shared_ptr<Season> season) {
+    if(!html) return;
     GumboOutput* htmlParsed = gumbo_parse(html);
     GumboNode* root = htmlParsed->root;
     if (root->type != GUMBO_NODE_ELEMENT) throw "parseSeasonHtml: root is no node element";
 
     // find table content (tbody tag)
     GumboNode* tbody = findNode(root, GUMBO_NODE_ELEMENT, GUMBO_TAG_TBODY);
-    if (!tbody) return nullptr;
+    if (!tbody) return;
 
     // iterate through all <tr>
     for (size_t i = 0; i < tbody->v.element.children.length; i++) {
@@ -342,7 +342,7 @@ Season* TVDBHandler::parseSeasonHtml(const char* html, Season* season) {
 
                         data = contentNode->v.text.text;  // extract string "SxxExx"
                         data.erase(0, data.find("E")+1);  // remove everything except for the episode number
-                        ep = new Episode(*season, data);
+                        ep = new Episode(*season, data);   // automatically adds episode to season
                         break;
                     // assume episode url & episode name
                     case GUMBO_TAG_A:
@@ -378,5 +378,4 @@ Season* TVDBHandler::parseSeasonHtml(const char* html, Season* season) {
             }
         }
     }
-    return season;
 }

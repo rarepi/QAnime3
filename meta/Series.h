@@ -9,7 +9,7 @@ class Series : public Metadata {
 		Series();
 		Series(const std::string& TVDBName);
 		Series::~Series();
-		void addSeason(Season* season);
+		void addSeason(const Season& season);
 
 		void setTVDBName(const std::string& name);
 		const std::string& getTVDBName() const;
@@ -21,7 +21,7 @@ class Series : public Metadata {
 		const std::string& getFirstAiredBroadcaster() const;
 
 	private:
-		std::vector<Season*> seasons;
+		std::vector<std::shared_ptr<Season>> seasons;
 		std::string TVDBName;
 		std::string airRhythm;
 		std::string firstAiredDate;

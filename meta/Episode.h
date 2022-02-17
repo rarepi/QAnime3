@@ -6,10 +6,11 @@ class Season;
 
 class Episode : public Metadata {
 	public:
-		Episode(Season& season, const int id);
-		Episode(Season& season, const std::string& id);
+		Episode();
+		Episode(const Season& season, const int id);
+		Episode(const Season& season, const std::string& id);
 
-		void setSeason(Season& season);
+		void setSeason(const Season& season);
 		void setAbsolute(const int absolute);
 		void setAbsolute(const std::string& absolute);
 		void setRuntime(const unsigned int ms);
@@ -18,7 +19,7 @@ class Episode : public Metadata {
 		void setFirstAiredBroadcaster(const std::string& firstAiredBroadcaster);
 		void setTVDBUrl(const std::string& TVDBUrl);
 
-		const Season* getSeason() const;
+		const std::shared_ptr<Season> getSeason() const;
 		const int getAbsolute() const;
 		const int getRuntime() const;
 		const std::string getFirstAiredDate() const;
@@ -26,7 +27,7 @@ class Episode : public Metadata {
 		const std::string getTVDBUrl() const;
 
 	private:
-		Season* season;
+		std::weak_ptr<Season> season;
 		int absolute = -1;
 		int runtime = -1;
 		std::string firstAiredDate;
